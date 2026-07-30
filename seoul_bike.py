@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 API_Key = '444d424e786a61653930524d624872'
 
@@ -112,3 +113,29 @@ def get_station_data():
   station_data_df_cleaned = station_data_df_cleaned.drop(columns = ['RENT_ID_NM'])
 
   return station_data_df_cleaned
+
+# Function Checking Whether the Date is Valid of Not
+def valid_date_string(date_text, date_format="%Y-%m-%d"):
+    try:
+        # Tries to parse the string into a datetime object
+        datetime.strptime(date_text, date_format)
+        return True
+    except ValueError:
+        # Throws an error if the date or format is invalid
+        return False
+
+# Creating an ultimate dataframe containing all the daily data of 2024
+Year = '2024'
+Month = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+Day = np.char.zfill(np.arange(1,32).astype(str), 2)
+
+ultimate_df = []
+
+for m in Month:
+  for d in Day:
+    date = Year + m + d
+    if valid_date_string(date) == True:
+      df = get_daily_data(date)
+      ultimate_df.append(df)
+
+ultimate_df = pd.concat(ultimate_df)
