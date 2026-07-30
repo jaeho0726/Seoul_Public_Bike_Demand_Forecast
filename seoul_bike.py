@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import numpy as np
 
 API_Key = '444d424e786a61653930524d624872'
 
@@ -14,7 +15,7 @@ def get_total_count(date):
     else:
         return "Request Failed"
 
-    total_count = int(count_data['CycleRentUseDayInfo']['list_total_count'])
+    total_count = int(count_data['cycleRentUseDayInfo']['list_total_count'])
     return total_count
 
 def get_daily_data(date):
@@ -46,13 +47,25 @@ def get_daily_data(date):
     # Dropping unnecessary columns
     data_df_cleaned = data_df.drop(columns = ['EXER_AMT', 'CARBON_AMT', 'RENT_TYPE', 'GENDER_CD', 'START_INDEX', 'END_INDEX', 'RNUM'])
 
-    # Changing the integer format of 'RENT_ID' 
+    # Changing the integer format of 'RENT_ID' column
     data_df_cleaned['rentid'] = data_df_cleaned['RENT_NM'].str.split(".")
     data_df_cleaned['rentid'] = data_df_cleaned['rentid'].str[0]
     data_df_cleaned['RENT_ID'] = data_df_cleaned['rentid']
     data_df_cleaned = data_df_cleaned.drop(columns = ['RENT_NM', 'rentid'])
-    
-    return data_df_cleaned
+
+    # Changing data type of 'USE_CNT', 'MOVE_METER', 'MOVE_TIME' columns
+    data_df_cleaned = data_df_cleaned.astype({'USE_CNT' : 'int64', 'MOVE_METER' : 'float64', 'MOVE_TIME' : 'int64'})
+
+    # Merging with 'station_data' based on Station ID
+    data_df_merged = pd.merge(data_df_cleaned, station_data, on = 'RENT_ID', how = 'left')
+
+    # Grouping based on the state
+    data_df_merged = data_df_merged.groupby(['STA_LOC'])[['USE_CNT', 'MOVE_METER', 'MOVE_TIME']].agg({'USE_CNT': 'sum', 'MOVE_METER': 'sum', 'MOVE_TIME': 'sum'})
+
+    # Adding date column
+    data_df_merged['DATE'] = date
+
+    return data_df_merged
 
 ## Functions of Loading Seoul City Bike Station Data 
 def get_station_count():
