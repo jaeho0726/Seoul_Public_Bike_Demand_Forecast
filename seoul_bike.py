@@ -2,6 +2,9 @@ import requests
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import time
+from pathlib import Path
+
 
 API_Key = '444d424e786a61653930524d624872'
 
@@ -58,6 +61,7 @@ def get_daily_data(date):
     data_df_cleaned = data_df_cleaned.astype({'USE_CNT' : 'int64', 'MOVE_METER' : 'float64', 'MOVE_TIME' : 'int64'})
 
     # Merging with 'station_data' based on Station ID
+    station_data = get_station_data()
     data_df_merged = pd.merge(data_df_cleaned, station_data, on = 'RENT_ID', how = 'left')
 
     # Grouping based on the state
@@ -125,17 +129,71 @@ def valid_date_string(date_text, date_format="%Y-%m-%d"):
         return False
 
 # Creating an ultimate dataframe containing all the daily data of 2024
-Year = '2024'
-Month = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
-Day = np.char.zfill(np.arange(1,32).astype(str), 2)
+save_dir = Path("bike_data_2024_daily")
+save_dir.mkdir(parents=True, exist_ok=True)
 
-ultimate_df = []
+dates_2024 = pd.date_range(
+    start="2024-01-01",
+    end="2024-12-31",
+    freq="D"
+)
 
-for m in Month:
-  for d in Day:
-    date = Year + m + d
-    if valid_date_string(date) == True:
-      df = get_daily_data(date)
-      ultimate_df.append(df)
+failed_dates = []
 
-ultimate_df = pd.concat(ultimate_df)
+for date in dates_2024: 
+    date_str = date.strftime("%Y%m%d")
+
+    # Creating folder name 
+    month_folder = date.strftime("%b_%Y")
+    (save_dir / month_folder).mkdir(parents=True, exist_ok=True)
+
+    file_path = save_dir / month_folder / f"bike_data_{date_str}.csv"
+    
+
+    # Skip dates that were already downloaded
+    if file_path.exists():
+        print(f"{date_str}: already saved")
+        continue
+
+    try:
+        daily_df = get_daily_data(date_str)
+
+        # get_daily_data() currently returns a string when a request fails
+        if not isinstance(daily_df, pd.DataFrame):
+            print(f"{date_str}: failed - {daily_df}")
+            failed_dates.append(date_str)
+            continue
+
+        if daily_df.empty:
+            print(f"{date_str}: empty DataFrame")
+            failed_dates.append(date_str)
+            continue
+
+        # STA_LOC is currently an index after groupby()
+        daily_df = daily_df.reset_index()
+
+        # Convert DATE into an actual datetime type
+        daily_df["DATE"] = pd.to_datetime(
+            daily_df["DATE"],
+            format="%Y%m%d"
+        )
+
+        daily_df.to_csv(
+            file_path,
+            index=False
+        )
+
+        print(
+            f"{date_str}: saved "
+            f"{len(daily_df):,} rows"
+        )
+
+        # Remove the daily DataFrame from memory
+        del daily_df
+
+        # Avoid sending requests too quickly
+        time.sleep(0.1)
+
+    except Exception as error:
+        print(f"{date_str}: error - {error}")
+        failed_dates.append(date_str)
