@@ -70,7 +70,13 @@ def get_daily_data(date):
     # Adding date column
     data_df_merged['DATE'] = date
 
-    return data_df_merged
+    # Reseting the index to later merge with weather data
+    data_df_merged = data_df_merged.reset_index()
+    
+    weather_data = get_weather_data()
+    data_df_weather_merged = data_df_merged.merge(weather_data, on='DATE', how='left')
+
+    return data_df_weather_merged
 
 ## Functions of Loading Seoul City Bike Station Data 
 def get_station_count():
@@ -128,13 +134,22 @@ def valid_date_string(date_text, date_format="%Y-%m-%d"):
         # Throws an error if the date or format is invalid
         return False
 
+# Function Loading Seoul Weather Data
+def get_weather_data():
+    weather_data = pd.read_csv('./seoul 2022-01-01 to 2024-01-01.csv')
+    weather_data_cleaned = weather_data[['datetime', 'tempmax', 'tempmin', 'feelslike', 'humidity']]
+    weather_data_cleaned['DATE'] = weather_data_cleaned['datetime'].str.replace('-', '')
+    weather_data_cleaned = weather_data_cleaned.drop(columns = ['datetime'])
+    weather_data_cleaned = weather_data_cleaned.astype({'tempmax' : 'float64', 'tempmin' : 'float64', 'feelslike' : 'float64', 'humidity' : 'float64'})
+    return weather_data_cleaned
+
 # Creating an ultimate dataframe containing all the daily data of 2024
 save_dir = Path("bike_data_2024_daily")
 save_dir.mkdir(parents=True, exist_ok=True)
 
 dates_2024 = pd.date_range(
-    start="2024-01-01",
-    end="2024-12-31",
+    start="2023-01-01",
+    end="2023-12-31",
     freq="D"
 )
 
