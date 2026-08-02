@@ -148,8 +148,9 @@ save_dir = Path("bike_data_2024_daily")
 save_dir.mkdir(parents=True, exist_ok=True)
 
 dates_2024 = pd.date_range(
-    start="2023-01-01",
-    end="2023-12-31",
+    start="2022-01-01",
+    end="2022"
+    "-12-31",
     freq="D"
 )
 
