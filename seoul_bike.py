@@ -136,7 +136,7 @@ def valid_date_string(date_text, date_format="%Y-%m-%d"):
 
 # Function Loading Seoul Weather Data
 def get_weather_data():
-    weather_data = pd.read_csv('.dataset/seoul 2022-01-01 to 2024-01-01.csv')
+    weather_data = pd.read_csv('./dataset/seoul 2022-01-01 to 2024-01-01.csv')
     weather_data_cleaned = weather_data[['datetime', 'tempmax', 'tempmin', 'feelslike', 'humidity']]
     weather_data_cleaned['DATE'] = weather_data_cleaned['datetime'].str.replace('-', '')
     weather_data_cleaned = weather_data_cleaned.drop(columns = ['datetime'])
@@ -148,9 +148,8 @@ save_dir = Path("dataset/daily_data")
 save_dir.mkdir(parents=True, exist_ok=True)
 
 dates_2024 = pd.date_range(
-    start="2022-01-01",
-    end="2022"
-    "-12-31",
+    start="2023-03-01",
+    end="2023-11-30",
     freq="D"
 )
 
