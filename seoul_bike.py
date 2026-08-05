@@ -4,6 +4,7 @@ import numpy as np
 from datetime import datetime
 import time
 from pathlib import Path
+from holidayskr import is_holiday
 
 
 API_Key = '444d424e786a61653930524d624872'
@@ -67,8 +68,13 @@ def get_daily_data(date):
     # Grouping based on the state
     data_df_merged = data_df_merged.groupby(['STA_LOC'])[['USE_CNT', 'MOVE_METER', 'MOVE_TIME']].agg({'USE_CNT': 'sum', 'MOVE_METER': 'sum', 'MOVE_TIME': 'sum'})
 
-    # Adding date column
-    data_df_merged['DATE'] = date
+    # Adding date, day of week, holiday columns
+    date_timestamp = pd.to_datetime(date, format="%Y%m%d")
+    date_string = date_timestamp.strftime("%Y-%m-%d")
+
+    data_df_merged['DATE'] = date_timestamp
+    data_df_merged['Day_of_Week'] = date_timestamp.day_name()
+    data_df_merged['Is_Holiday'] = bool(is_holiday(date_string))
 
     # Reseting the index to later merge with weather data
     data_df_merged = data_df_merged.reset_index()
@@ -124,23 +130,13 @@ def get_station_data():
 
   return station_data_df_cleaned
 
-# Function Checking Whether the Date is Valid of Not
-def valid_date_string(date_text, date_format="%Y-%m-%d"):
-    try:
-        # Tries to parse the string into a datetime object
-        datetime.strptime(date_text, date_format)
-        return True
-    except ValueError:
-        # Throws an error if the date or format is invalid
-        return False
-
 # Function Loading Seoul Weather Data
 def get_weather_data():
     weather_data = pd.read_csv('./dataset/seoul 2022-01-01 to 2024-01-01.csv')
-    weather_data_cleaned = weather_data[['datetime', 'tempmax', 'tempmin', 'feelslike', 'humidity']]
-    weather_data_cleaned['DATE'] = weather_data_cleaned['datetime'].str.replace('-', '')
+    weather_data_cleaned = weather_data[['datetime', 'tempmax', 'tempmin', 'feelslike', 'humidity', 'precip']]
+    weather_data_cleaned['DATE'] = pd.to_datetime(weather_data_cleaned['datetime'], format='%Y-%m-%d')
     weather_data_cleaned = weather_data_cleaned.drop(columns = ['datetime'])
-    weather_data_cleaned = weather_data_cleaned.astype({'tempmax' : 'float64', 'tempmin' : 'float64', 'feelslike' : 'float64', 'humidity' : 'float64'})
+    weather_data_cleaned = weather_data_cleaned.astype({'tempmax' : 'float64', 'tempmin' : 'float64', 'feelslike' : 'float64', 'humidity' : 'float64', 'precip' : 'float64'})
     return weather_data_cleaned
 
 # Creating an ultimate dataframe containing all the daily data of 2024
@@ -148,8 +144,8 @@ save_dir = Path("dataset/daily_data")
 save_dir.mkdir(parents=True, exist_ok=True)
 
 dates_2024 = pd.date_range(
-    start="2023-03-01",
-    end="2023-11-30",
+    start="2023-07-03",
+    end="2023-11-20",
     freq="D"
 )
 
@@ -186,12 +182,6 @@ for date in dates_2024:
 
         # STA_LOC is currently an index after groupby()
         daily_df = daily_df.reset_index()
-
-        # Convert DATE into an actual datetime type
-        daily_df["DATE"] = pd.to_datetime(
-            daily_df["DATE"],
-            format="%Y%m%d"
-        )
 
         daily_df.to_csv(
             file_path,

@@ -1,0 +1,7 @@
+pandas 
+numpy
+requests
+datetime
+time
+pathlib
+holidayskr
