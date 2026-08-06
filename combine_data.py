@@ -23,11 +23,13 @@ def combine_daily_csv_files():
         try:
             daily_df = pd.read_csv(file_path)
 
+            daily_df = daily_df.drop(columns=["index"], errors="ignore")
+
             if daily_df.empty:
                 print(f"Skipped empty file: {file_path}")
                 continue
 
-            # Optional validation: each file should contain 25 Seoul districts
+            # Validating whether each file contains 25 Seoul districts
             if len(daily_df) != 25:
                 print(
                     f"Warning: {file_path.name} contains "
