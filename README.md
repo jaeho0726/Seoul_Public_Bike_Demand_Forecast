@@ -4,7 +4,9 @@
 
 ```
 Seoul Public Bike Demand Forecast
-|_ seoul_bike.py
+|_ data_gathering.py
+|_ preprocessing.py
+|_ modeling.py
 |_ README.md
 |_ dataset
     |_ 'seoul 2022-01-01 to 2024-01-01'.csv
