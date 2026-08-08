@@ -50,7 +50,7 @@ def get_daily_data(date):
     data_df = pd.DataFrame(entire_rows)
 
     # Dropping unnecessary columns
-    data_df_cleaned = data_df.drop(columns = ['EXER_AMT', 'CARBON_AMT', 'RENT_TYPE', 'GENDER_CD', 'START_INDEX', 'END_INDEX', 'RNUM'])
+    data_df_cleaned = data_df.drop(columns = ['EXER_AMT', 'CARBON_AMT', 'RENT_TYPE', 'GENDER_CD', 'START_INDEX', 'END_INDEX', 'RNUM', 'MOVE_METER'])
 
     # Changing the integer format of 'RENT_ID' column
     data_df_cleaned['rentid'] = data_df_cleaned['RENT_NM'].str.split(".")
@@ -58,15 +58,23 @@ def get_daily_data(date):
     data_df_cleaned['RENT_ID'] = data_df_cleaned['rentid']
     data_df_cleaned = data_df_cleaned.drop(columns = ['RENT_NM', 'rentid'])
 
-    # Changing data type of 'USE_CNT', 'MOVE_METER', 'MOVE_TIME' columns
-    data_df_cleaned = data_df_cleaned.astype({'USE_CNT' : 'int64', 'MOVE_METER' : 'float64', 'MOVE_TIME' : 'int64'})
+    # Changing data type of 'USE_CNT' and 'MOVE_TIME' columns
+    data_df_cleaned = data_df_cleaned.astype({'USE_CNT' : 'int64', 'MOVE_TIME' : 'int64'})
 
     # Merging with 'station_data' based on Station ID
     station_data = get_station_data()
     data_df_merged = pd.merge(data_df_cleaned, station_data, on = 'RENT_ID', how = 'left')
 
     # Grouping based on the state
-    data_df_merged = data_df_merged.groupby(['STA_LOC'])[['USE_CNT', 'MOVE_METER', 'MOVE_TIME']].agg({'USE_CNT': 'sum', 'MOVE_METER': 'sum', 'MOVE_TIME': 'sum'})
+    data_df_merged = data_df_merged.groupby(['STA_LOC'])[['USE_CNT', 'MOVE_TIME']].agg({'USE_CNT': 'sum', 'MOVE_TIME': 'sum'})
+
+    # Calculating average usage time per rental
+    data_df_merged['AVG_MOVE_TIME'] = (
+        data_df_merged['MOVE_TIME']
+        / data_df_merged['USE_CNT']
+    )
+    data_df_merged = data_df_merged.astype({'AVG_MOVE_TIME' : 'float64'})
+    data_df_merged = data_df_merged.drop(columns = ['MOVE_TIME'])
 
     # Adding date, day of week, holiday columns
     date_timestamp = pd.to_datetime(date, format="%Y%m%d")
@@ -75,6 +83,8 @@ def get_daily_data(date):
     data_df_merged['DATE'] = date_timestamp
     data_df_merged['Day_of_Week'] = date_timestamp.day_name()
     data_df_merged['Is_Holiday'] = bool(is_holiday(date_string))
+
+    data_df_merged["Is_Weekend"] = (data_df_merged['DATE'].dt.dayofweek >= 5)
 
     # Reseting the index to later merge with weather data
     data_df_merged = data_df_merged.reset_index()
@@ -144,8 +154,8 @@ save_dir = Path("dataset/daily_data")
 save_dir.mkdir(parents=True, exist_ok=True)
 
 dates_2024 = pd.date_range(
-    start="2023-07-03",
-    end="2023-11-20",
+    start="2022-08-31",
+    end="2023-11-23",
     freq="D"
 )
 
@@ -179,9 +189,6 @@ for date in dates_2024:
             print(f"{date_str}: empty DataFrame")
             failed_dates.append(date_str)
             continue
-
-        # STA_LOC is currently an index after groupby()
-        daily_df = daily_df.reset_index()
 
         daily_df.to_csv(
             file_path,

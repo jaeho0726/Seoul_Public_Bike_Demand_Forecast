@@ -21,9 +21,7 @@ def combine_daily_csv_files():
 
     for file_path in csv_files:
         try:
-            daily_df = pd.read_csv(file_path)
-
-            daily_df = daily_df.drop(columns=["index"], errors="ignore")
+            daily_df = pd.read_csv(file_path, parse_dates=["DATE"])
 
             if daily_df.empty:
                 print(f"Skipped empty file: {file_path}")
@@ -46,12 +44,6 @@ def combine_daily_csv_files():
 
     # Combine all daily DataFrames vertically
     combined_df = pd.concat(dataframes, ignore_index=True)
-
-    # Make sure DATE is treated as a datetime column
-    combined_df["DATE"] = pd.to_datetime(
-        combined_df["DATE"],
-        errors="coerce"
-    )
 
     # Sort chronologically and then by district
     sort_columns = ["DATE"]
