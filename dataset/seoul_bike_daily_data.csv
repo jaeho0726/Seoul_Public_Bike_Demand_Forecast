@@ -1,4 +1,4 @@
-﻿STA_LOC,USE_CNT,AVG_MOVE_TIME,DATE,Day_of_Week,Is_Holiday,Is_Weekend,tempmax,tempmin,feelslike,humidity,precip
+﻿district,use_count,avg_use_time,date,day_of_week,is_holiday,is_weekend,temp_max,temp_min,feels_like,humidity,precip
 강남구,685,29.65255474452555,2022-01-01,Saturday,True,True,2.0,-10.2,-6.6,44.3,0.0
 강동구,1303,19.79278587874137,2022-01-01,Saturday,True,True,2.0,-10.2,-6.6,44.3,0.0
 강북구,570,21.73508771929825,2022-01-01,Saturday,True,True,2.0,-10.2,-6.6,44.3,0.0

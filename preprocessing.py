@@ -61,6 +61,21 @@ def combine_daily_csv_files():
     if invalid_dates > 0:
         print(f"Warning: {invalid_dates} rows have invalid DATE values.")
 
+    columns_rename_map = {
+        "STA_LOC": "district",
+        "USE_CNT": "use_count",
+        "AVG_MOVE_TIME": "avg_use_time",
+        "DATE": "date",
+        "Day_of_Week": "day_of_week",
+        "Is_Holiday": "is_holiday",
+        "Is_Weekend": "is_weekend",
+        "tempmax": "temp_max",
+        "tempmin": "temp_min",
+        "feelslike": "feels_like",
+        }
+    
+    combined_df = combined_df.rename(columns=columns_rename_map)
+
     # Save as one CSV
     combined_df.to_csv(
         output_file,
@@ -71,7 +86,7 @@ def combine_daily_csv_files():
     print("\nCombination completed.")
     print(f"Number of CSV files combined: {len(dataframes):,}")
     print(f"Total rows: {len(combined_df):,}")
-    print(f"Date range: {combined_df['DATE'].min()} to {combined_df['DATE'].max()}")
+    print(f"Date range: {combined_df['date'].min()} to {combined_df['date'].max()}")
     print(f"Saved to: {output_file.resolve()}")
 
     return combined_df
