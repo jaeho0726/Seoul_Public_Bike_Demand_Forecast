@@ -1,15 +1,22 @@
+# =========================================================
+# Seoul Public Bike Demand Forecast - Data Gathering
+# =========================================================
+
 import pandas as pd
 from pathlib import Path
 
+# Combining daily CSV files into one CSV file
+# =========================================================
+
 def combine_daily_csv_files():
 
-    # Parent folder containing Jan_2022, Feb_2022, ..., Dec_2023
+    ## Parent folder containing Jan_2022, Feb_2022, ..., Dec_2023
     daily_data_dir = Path("dataset/daily_data")
 
-    # Final combined CSV location
+    ## Final combined CSV location
     output_file = Path("dataset/seoul_bike_daily_data.csv")
 
-    # Find CSV files inside all month folders
+    ## Find CSV files inside all month folders
     csv_files = sorted(daily_data_dir.rglob("bike_data_*.csv"))
 
     if not csv_files:
@@ -27,7 +34,7 @@ def combine_daily_csv_files():
                 print(f"Skipped empty file: {file_path}")
                 continue
 
-            # Validating whether each file contains 25 Seoul districts
+            ## Validating whether each file contains 25 Seoul districts
             if len(daily_df) != 25:
                 print(
                     f"Warning: {file_path.name} contains "
@@ -42,10 +49,10 @@ def combine_daily_csv_files():
     if not dataframes:
         raise ValueError("No valid CSV files were available to combine.")
 
-    # Combine all daily DataFrames vertically
+    ## Combine all daily DataFrames vertically
     combined_df = pd.concat(dataframes, ignore_index=True)
 
-    # Sort chronologically and then by district
+    ## Sort chronologically and then by district
     sort_columns = ["DATE"]
 
     if "STA_LOC" in combined_df.columns:
@@ -55,7 +62,7 @@ def combine_daily_csv_files():
         by=sort_columns
     ).reset_index(drop=True)
 
-    # Check for invalid DATE values
+    ## Check for invalid DATE values
     invalid_dates = combined_df["DATE"].isna().sum()
 
     if invalid_dates > 0:
@@ -76,7 +83,7 @@ def combine_daily_csv_files():
     
     combined_df = combined_df.rename(columns=columns_rename_map)
 
-    # Save as one CSV
+    ## Save as one CSV
     combined_df.to_csv(
         output_file,
         index=False,
@@ -93,3 +100,64 @@ def combine_daily_csv_files():
 
 
 combined_bike_df = combine_daily_csv_files()
+
+
+
+# Data Checking
+# =========================================================
+
+## Checking Data Types
+print("\nData Types:")
+print(combined_bike_df.columns.tolist())
+print(combined_bike_df.dtypes)
+
+## Checking Null Values
+print("\nNull Values:")
+print(combined_bike_df.isnull().sum())
+
+## Setting Feature & Target Variables
+feature_columns = [
+    "district",
+    "day_of_week",
+    "is_holiday",
+    "is_weekend",
+    "temp_max",
+    "temp_min",
+    "feels_like",
+    "humidity",
+    "precip",
+]
+
+target_columns = [
+    "use_count",
+    "avg_use_time",
+]
+
+X = combined_bike_df[feature_columns].copy()
+y = combined_bike_df[target_columns].copy()
+
+print("\nX shape:", X.shape)
+print("\ny shape:", y.shape)
+
+
+
+# Data Preprocessing
+# =========================================================
+
+## Split point for training and testing data (e.g., 80% train, 20% test)
+test_start_date = "2023-08-01"
+
+categorical_features = [
+    "district",
+    "day_of_week",
+]
+
+numerical_features = [
+    "is_holiday",
+    "is_weekend",
+    "temp_max",
+    "temp_min",
+    "feels_like",
+    "humidity",
+    "precip",
+]

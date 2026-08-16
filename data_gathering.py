@@ -1,3 +1,10 @@
+# =========================================================
+# Seoul Public Bike Demand Forecast - Data Gathering
+# Description: This script gathers daily bike usage data from the Seoul Open API, processes it, and saves it into CSV files for further analysis. 
+# =========================================================
+
+# Importing necessary libraries
+# =========================================================
 import requests
 import pandas as pd
 import numpy as np
@@ -5,11 +12,19 @@ from datetime import datetime
 import time
 from pathlib import Path
 from holidayskr import is_holiday
+import os
 
 
-API_Key = '444d424e786a61653930524d624872'
+API_Key = os.getenv('Seoul_Open_Data_API_Key')
+
+if not API_Key:
+    raise RuntimeError(
+        "Missing SEOUL_OPEN_DATA_API_KEY environment variable. "
+        "Set it before running this script."
+    )
 
 # Functions
+# =========================================================
 ## Functions of Loading Seoul City Bike Daily Usage Data 
 def get_total_count(date):
     count_url = f'http://openapi.seoul.go.kr:8088/{API_Key}/json/tbCycleRentUseDayInfo/1/2/{date}'
@@ -49,26 +64,26 @@ def get_daily_data(date):
 
     data_df = pd.DataFrame(entire_rows)
 
-    # Dropping unnecessary columns
+    ### Dropping unnecessary columns
     data_df_cleaned = data_df.drop(columns = ['EXER_AMT', 'CARBON_AMT', 'RENT_TYPE', 'GENDER_CD', 'START_INDEX', 'END_INDEX', 'RNUM', 'MOVE_METER'])
 
-    # Changing the integer format of 'RENT_ID' column
+    ### Changing the integer format of 'RENT_ID' column
     data_df_cleaned['rentid'] = data_df_cleaned['RENT_NM'].str.split(".")
     data_df_cleaned['rentid'] = data_df_cleaned['rentid'].str[0]
     data_df_cleaned['RENT_ID'] = data_df_cleaned['rentid']
     data_df_cleaned = data_df_cleaned.drop(columns = ['RENT_NM', 'rentid'])
 
-    # Changing data type of 'USE_CNT' and 'MOVE_TIME' columns
+    ### Changing data type of 'USE_CNT' and 'MOVE_TIME' columns
     data_df_cleaned = data_df_cleaned.astype({'USE_CNT' : 'int64', 'MOVE_TIME' : 'int64'})
 
-    # Merging with 'station_data' based on Station ID
+    ### Merging with 'station_data' based on Station ID
     station_data = get_station_data()
     data_df_merged = pd.merge(data_df_cleaned, station_data, on = 'RENT_ID', how = 'left')
 
-    # Grouping based on the state
+    ### Grouping based on the state
     data_df_merged = data_df_merged.groupby(['STA_LOC'])[['USE_CNT', 'MOVE_TIME']].agg({'USE_CNT': 'sum', 'MOVE_TIME': 'sum'})
 
-    # Calculating average usage time per rental
+    ### Calculating average usage time per rental
     data_df_merged['AVG_MOVE_TIME'] = (
         data_df_merged['MOVE_TIME']
         / data_df_merged['USE_CNT']
@@ -76,7 +91,7 @@ def get_daily_data(date):
     data_df_merged = data_df_merged.astype({'AVG_MOVE_TIME' : 'float64'})
     data_df_merged = data_df_merged.drop(columns = ['MOVE_TIME'])
 
-    # Adding date, day of week, holiday columns
+    ### Adding date, day of week, holiday columns
     date_timestamp = pd.to_datetime(date, format="%Y%m%d")
     date_string = date_timestamp.strftime("%Y-%m-%d")
 
@@ -86,7 +101,7 @@ def get_daily_data(date):
 
     data_df_merged["Is_Weekend"] = (data_df_merged['DATE'].dt.dayofweek >= 5)
 
-    # Reseting the index to later merge with weather data
+    ### Reseting the index to later merge with weather data
     data_df_merged = data_df_merged.reset_index()
     
     weather_data = get_weather_data()
@@ -94,7 +109,7 @@ def get_daily_data(date):
 
     return data_df_weather_merged
 
-## Functions of Loading Seoul City Bike Station Data 
+## Function of Loading Seoul City Bike Station Data 
 def get_station_count():
   url = f'http://openapi.seoul.go.kr:8088/{API_Key}/json/tbCycleStationInfo/1/2/'
   count_response = requests.get(url, timeout=30)
@@ -107,6 +122,7 @@ def get_station_count():
   total_count = int(count_station_data['stationInfo']['list_total_count'])
   return total_count
 
+## Function of Loading Seoul City Bike Station Data
 def get_station_data():
   entire_station = []
 
@@ -140,7 +156,7 @@ def get_station_data():
 
   return station_data_df_cleaned
 
-# Function Loading Seoul Weather Data
+## Function of Loading Seoul Weather Data
 def get_weather_data():
     weather_data = pd.read_csv('./dataset/seoul 2022-01-01 to 2024-01-01.csv')
     weather_data_cleaned = weather_data[['datetime', 'tempmax', 'tempmin', 'feelslike', 'humidity', 'precip']]
@@ -149,7 +165,7 @@ def get_weather_data():
     weather_data_cleaned = weather_data_cleaned.astype({'tempmax' : 'float64', 'tempmin' : 'float64', 'feelslike' : 'float64', 'humidity' : 'float64', 'precip' : 'float64'})
     return weather_data_cleaned
 
-# Creating an ultimate dataframe containing all the daily data of 2024
+## Function of Creating an Ultimate DataFrame Containing All Daily Data of 2024
 save_dir = Path("dataset/daily_data")
 save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -164,14 +180,14 @@ failed_dates = []
 for date in dates_2024: 
     date_str = date.strftime("%Y%m%d")
 
-    # Creating folder name 
+    ### Creating folder name 
     month_folder = date.strftime("%b_%Y")
     (save_dir / month_folder).mkdir(parents=True, exist_ok=True)
 
     file_path = save_dir / month_folder / f"bike_data_{date_str}.csv"
     
 
-    # Skip dates that were already downloaded
+    ### Skip dates that were already downloaded
     if file_path.exists():
         print(f"{date_str}: already saved")
         continue
@@ -179,7 +195,7 @@ for date in dates_2024:
     try:
         daily_df = get_daily_data(date_str)
 
-        # get_daily_data() currently returns a string when a request fails
+        ### get_daily_data() currently returns a string when a request fails
         if not isinstance(daily_df, pd.DataFrame):
             print(f"{date_str}: failed - {daily_df}")
             failed_dates.append(date_str)
@@ -200,10 +216,10 @@ for date in dates_2024:
             f"{len(daily_df):,} rows"
         )
 
-        # Remove the daily DataFrame from memory
+        ### Remove the daily DataFrame from memory
         del daily_df
 
-        # Avoid sending requests too quickly
+        ### Avoid sending requests too quickly
         time.sleep(0.1)
 
     except Exception as error:
