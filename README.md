@@ -16,7 +16,7 @@ Seoul Public Bike Demand Forecast
             |_ bike_data_{year}{month}{day}.csv (each csv file has 25 rows, the number of state in Seoul)
 ```
 
-## Dataset Source
+## Dataset Sources
 
 - Seoul Open Data Plaza
   - [Seoul Public Bike (따릉이) Station Data](https://data.seoul.go.kr/dataList/OA-13252/F/1/datasetView.do)
