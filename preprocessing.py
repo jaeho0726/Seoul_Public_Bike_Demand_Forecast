@@ -1,13 +1,11 @@
 # =========================================================
-# Seoul Public Bike Demand Forecast - Data Gathering
+# Seoul Public Bike Demand Forecast - Preprocessing
 # =========================================================
 
 # Importing necessary libraries
 # =========================================================
 import pandas as pd
 from pathlib import Path
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
 
 
 
@@ -120,95 +118,3 @@ print(combined_bike_df.dtypes)
 ## Checking Null Values
 print("\nNull Values:")
 print(combined_bike_df.isnull().sum())
-
-## Setting Feature & Target Variables
-feature_columns = [
-    "district",
-    "day_of_week",
-    "is_holiday",
-    "is_weekend",
-    "temp_max",
-    "temp_min",
-    "feels_like",
-    "humidity",
-    "precip",
-]
-
-target_columns = [
-    "use_count",
-    "avg_use_time",
-]
-
-X = combined_bike_df[feature_columns].copy()
-y = combined_bike_df[target_columns].copy()
-dates = combined_bike_df["date"].copy()
-
-print("\nX shape:", X.shape)
-print("\ny shape:", y.shape)
-
-
-
-# Data Preprocessing
-# =========================================================
-
-## Split point for training and testing data (e.g., 80% train, 20% test)
-test_start_date = pd.Timestamp("2023-08-01")
-
-categorical_features = [
-    "district",
-    "day_of_week",
-]
-
-numerical_features = [
-    "is_holiday",
-    "is_weekend",
-    "temp_max",
-    "temp_min",
-    "feels_like",
-    "humidity",
-    "precip",
-]
-
-## Train Test Split
-train_mask = dates < test_start_date
-test_mask = dates >= test_start_date
-
-
-X_train = X.loc[train_mask].copy()
-X_test = X.loc[test_mask].copy()
-
-y_train = y.loc[train_mask].copy()
-y_test = y.loc[test_mask].copy()
-
-train_dates = dates.loc[train_mask].copy()
-test_dates = dates.loc[test_mask].copy()
-
-### Checking the actual train test split ratios
-train_ratio = len(X_train) / len(X)
-test_ratio = len(X_test) / len(X)
-
-print(f"\nTrain Ratio: {train_ratio:.2%}")
-print(f"\nTest Ratio: {test_ratio:.2%}")
-
-## preprocessing for categorical features using OneHotEncoder
-categorical_transformer = OneHotEncoder(
-    handle_unknown="ignore",
-    sparse_output=False,
-)
-
-## Overall Preprocessing
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("categorical", categorical_transformer,categorical_features),
-        ("numerical", "passthrough", numerical_features)
-    ],
-    remainder="drop"
-)
-
-X_train_processed = preprocessor.fit_transform(X_train)
-
-X_test_processed = preprocessor.transform(X_test)
-
-
-
-
