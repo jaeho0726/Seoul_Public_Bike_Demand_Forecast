@@ -11,7 +11,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 
-import mean_absolute_error, r2_score
+from sklearn.metrics import mean_absolute_error, r2_score
 
 
 bike_df = pd.read_csv("dataset/seoul_bike_daily_data.csv", parse_dates=["date"])
@@ -135,14 +135,9 @@ def create_models():
 ## Saving predictions and evaluation results for each model
 trained_models = {}
 predictions = {}
-evaluation_results = {}
+evaluation_results = []
 
 for target in target_columns:
-
-    print("\n" + "=" * 60)
-    print(f"Target: {target}")
-    print("=" * 60)
-
     # 현재 타깃에 사용할 새로운 모델 3개 생성
     models = create_models()
 
@@ -183,3 +178,7 @@ for target in target_columns:
 
         print(f"MAE: {mae:.3f}")
         print(f"R² : {r2:.3f}")
+
+
+evaluation_df = pd.DataFrame(evaluation_results)
+print(evaluation_df)

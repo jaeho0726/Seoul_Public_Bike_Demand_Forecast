@@ -1,9 +1,5 @@
-pandas 
+pandas
 numpy
 requests
-datetime
-time
-pathlib
 holidayskr
-sklearn
-os
+scikit-learn
