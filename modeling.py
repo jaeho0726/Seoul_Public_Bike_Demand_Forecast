@@ -182,3 +182,95 @@ for target in target_columns:
 
 evaluation_df = pd.DataFrame(evaluation_results)
 print(evaluation_df)
+
+## Baseline Evaluation
+### Calculating average of use_count and avg_use_time for each district in train data 
+baseline_train_df = pd.concat(
+    [
+        X_train[["district"]],
+        y_train,
+    ],
+    axis=1,
+)
+
+district_baseline = (
+    baseline_train_df
+    .groupby("district")[target_columns]
+    .mean()
+)
+
+## Baseline Prediction
+baseline_results = []
+
+for target in target_columns:
+
+    # Test 데이터의 각 district에 해당하는
+    # Train 기간의 district 평균값을 예측값으로 사용한다.
+    baseline_pred = (
+        X_test["district"]
+        .map(district_baseline[target])
+    )
+
+    baseline_mae = mean_absolute_error(
+        y_test[target],
+        baseline_pred,
+    )
+
+    baseline_r2 = r2_score(
+        y_test[target],
+        baseline_pred,
+    )
+
+    baseline_results.append({
+        "target": target,
+        "model": "District Mean Baseline",
+        "MAE": baseline_mae,
+        "R2": baseline_r2,
+    })
+
+
+baseline_evaluation_df = pd.DataFrame(
+    baseline_results
+)
+
+## Combining baseline and ML model predictions 
+all_evaluation_df = pd.concat(
+    [
+        baseline_evaluation_df,
+        evaluation_df,
+    ],
+    ignore_index=True,
+)
+
+## Calculating MAE improvement over baseline 
+baseline_mae_dict = (
+    baseline_evaluation_df
+    .set_index("target")["MAE"]
+    .to_dict()
+)
+
+# Calculating the percent decrease of MAE compared to Baseline 
+all_evaluation_df["MAE_improvement"] = (
+    all_evaluation_df.apply(
+        lambda row:
+        (
+            baseline_mae_dict[row["target"]]
+            - row["MAE"]
+        )
+        / baseline_mae_dict[row["target"]]
+        * 100,
+        axis=1,
+    )
+)
+
+print("\n" + "=" * 60)
+print("Final Model Evaluation")
+print("=" * 60)
+
+print(
+    all_evaluation_df.round({
+        "MAE": 3,
+        "R2": 3,
+        "MAE_improvement": 2,
+    })
+)
