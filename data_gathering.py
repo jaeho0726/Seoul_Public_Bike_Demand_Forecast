@@ -158,7 +158,7 @@ def get_station_data():
 
 ## Function of Loading Seoul Weather Data
 def get_weather_data():
-    weather_data = pd.read_csv('./dataset/seoul 2022-01-01 to 2024-01-01.csv')
+    weather_data = pd.read_csv('./dataset/seoul 2022-01-01 to 2024-01-01 weather.csv')
     weather_data_cleaned = weather_data[['datetime', 'tempmax', 'tempmin', 'feelslike', 'humidity', 'precip']]
     weather_data_cleaned['DATE'] = pd.to_datetime(weather_data_cleaned['datetime'], format='%Y-%m-%d')
     weather_data_cleaned = weather_data_cleaned.drop(columns = ['datetime'])

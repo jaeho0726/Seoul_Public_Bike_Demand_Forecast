@@ -17,6 +17,8 @@ from sklearn.metrics import mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
 from sklearn.inspection import permutation_importance
 
+from pathlib import Path
+import joblib
 
 # Loading Dataset
 # =========================================================
@@ -845,3 +847,66 @@ plt.title(
 plt.tight_layout()
 
 plt.show()
+
+
+# Saving Models 
+# =========================================================
+MODEL_DIR = Path("models")
+
+## Create folder 
+MODEL_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+## Model for use_count
+final_use_count_model = (
+    trained_models["use_count"]["Random Forest"]
+)
+
+## Model for avg_use_time
+final_avg_use_time_model = (
+    trained_models["avg_use_time"]["HistGradientBoosting"]
+)
+
+## Saving preprocessor & final models
+joblib.dump(
+    preprocessor,
+    MODEL_DIR / "preprocessor.pkl"
+)
+
+joblib.dump(
+    final_use_count_model,
+    MODEL_DIR / "use_count_model.pkl"
+)
+
+joblib.dump(
+    final_avg_use_time_model,
+    MODEL_DIR / "avg_use_time_model.pkl"
+)
+
+district_baseline.to_csv(
+    MODEL_DIR / "district_baseline.csv",
+    encoding="utf-8-sig"
+)
+
+## Saving model information
+model_info = {
+    "feature_columns": feature_columns,
+
+    "categorical_features": categorical_features,
+
+    "numerical_features": numerical_features,
+
+    "use_count_model": "Random Forest",
+
+    "avg_use_time_model": "HistGradientBoosting",
+
+    "test_start_date": "2023-08-01",
+}
+
+
+joblib.dump(
+    model_info,
+    MODEL_DIR / "model_info.pkl"
+)
