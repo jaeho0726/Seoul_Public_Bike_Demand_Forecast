@@ -872,17 +872,20 @@ final_avg_use_time_model = (
 ## Saving preprocessor & final models
 joblib.dump(
     preprocessor,
-    MODEL_DIR / "preprocessor.pkl"
+    MODEL_DIR / "preprocessor.pkl",
+    compress = 3
 )
 
 joblib.dump(
     final_use_count_model,
-    MODEL_DIR / "use_count_model.pkl"
+    MODEL_DIR / "use_count_model.pkl",
+    compress = 3
 )
 
 joblib.dump(
     final_avg_use_time_model,
-    MODEL_DIR / "avg_use_time_model.pkl"
+    MODEL_DIR / "avg_use_time_model.pkl",
+    compress = 3
 )
 
 district_baseline.to_csv(
@@ -908,5 +911,6 @@ model_info = {
 
 joblib.dump(
     model_info,
-    MODEL_DIR / "model_info.pkl"
+    MODEL_DIR / "model_info.pkl",
+    compress = 3
 )
