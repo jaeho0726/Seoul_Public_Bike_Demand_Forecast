@@ -1,0 +1,18 @@
+# KMA API cache
+kma_forecast_cache/
+
+# Generated daily weather files
+dataset/weather/
+
+# NumPy cache/data files
+*.npy
+
+# Python cache
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Environment variables / API keys
+.env
