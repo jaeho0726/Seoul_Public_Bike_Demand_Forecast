@@ -17,28 +17,17 @@ import requests
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+import os
 
 
 # =========================================================
 # 0. 기본 설정
 # =========================================================
 
-Weather_API_Key = 'IPYr_3IPRKK2K_9yD3SiVg'
+Weather_API_Key = os.getenv("KMA_API_KEY")
 
 # VWorld에서 다운로드한 시군구 경계 SHP 파일 경로
 shp_path = "./file/BND_SIGUNGU_PG.shp"
-
-MAPPING_CSV = "./dataset/seoul_district_kma_grid.csv"
-
-CACHE_DIR = Path("kma_forecast_cache")
-CACHE_DIR.mkdir(exist_ok=True)
-
-OUTPUT_DIR = Path("./dataset/weather")
-OUTPUT_DIR.mkdir(exist_ok=True)
-
-GRID_X = 149
-GRID_Y = 253
-EXPECTED_SIZE = GRID_X * GRID_Y
 
 
 # =========================================================

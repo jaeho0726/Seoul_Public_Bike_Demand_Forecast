@@ -1,5 +1,6 @@
 import os
 import time
+import requests
 
 import pandas as pd
 import numpy as np
@@ -12,14 +13,20 @@ from datetime import datetime, timedelta
 # 0. 설정
 # =========================================================
 
-Weather_API_Key = 'IPYr_3IPRKK2K_9yD3SiVg'
+Weather_API_Key = os.getenv("KMA_API_KEY")
+
+print("API key exists:", Weather_API_Key is not None)
+
+if Weather_API_Key:
+    print("API key length:", len(Weather_API_Key))
+    print("API key preview:", Weather_API_Key[:5] + "...")
 
 MAPPING_CSV = "./dataset/seoul_district_kma_grid.csv"
 
 CACHE_DIR = Path("kma_forecast_cache")
 CACHE_DIR.mkdir(exist_ok=True)
 
-OUTPUT_DIR = Path("training_weather")
+OUTPUT_DIR = Path("./dataset/daily_weather")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 GRID_X = 149
@@ -96,21 +103,22 @@ def get_forecast_grid(
     tmfc,
     tmef,
     api_key,
-    sleep_seconds=0.1
+    sleep_seconds=0.2,
+    max_retries=5
 ):
-    ## 같은 요청은 cache에서 읽고, cache가 없을 때만 API 호출.
-
     cache_path = get_cache_path(
         tmfc,
         tmef,
         variable
     )
 
-    ## 이미 받았으면 API 호출하지 않음
     if cache_path.exists():
         return np.load(cache_path)
 
-    url = "https://apihub.kma.go.kr/api/typ01/cgi-bin/url/nph-dfs_shrt_grd"
+    url = (
+        "https://apihub.kma.go.kr/api/typ01/cgi-bin/url/"
+        "nph-dfs_shrt_grd"
+    )
 
     params = {
         "tmfc": tmfc,
@@ -119,23 +127,54 @@ def get_forecast_grid(
         "authKey": api_key
     }
 
-    response = requests.get(
-        url,
-        params=params,
-        timeout=30
-    )
+    for attempt in range(1, max_retries + 1):
 
-    response.raise_for_status()
+        try:
+            response = requests.get(
+                url,
+                params=params,
+                timeout=60
+            )
 
-    grid = parse_forecast_grid(
-        response.text
-    )
+            response.raise_for_status()
 
-    ## 캐시 저장
-    np.save(cache_path, grid)
+            grid = parse_forecast_grid(
+                response.text
+            )
 
-    # API 과호출 방지
-    time.sleep(sleep_seconds)
+            np.save(
+                cache_path,
+                grid
+            )
+
+            time.sleep(sleep_seconds)
+
+            return grid
+
+        except (
+            requests.exceptions.ConnectTimeout,
+            requests.exceptions.ReadTimeout,
+            requests.exceptions.ConnectionError
+        ) as e:
+
+            print(
+                f"[재시도 {attempt}/{max_retries}] "
+                f"{variable} "
+                f"tmfc={tmfc} "
+                f"tmef={tmef}: {e}"
+            )
+
+            if attempt == max_retries:
+                raise
+
+            # 2, 4, 8, 16초...
+            wait_time = 2 ** attempt
+
+            print(
+                f"{wait_time}초 후 재시도..."
+            )
+
+            time.sleep(wait_time)
 
     return grid
 

@@ -2,7 +2,7 @@
 kma_forecast_cache/
 
 # Generated daily weather files
-dataset/weather/
+dataset/daily_weather/
 
 # NumPy cache/data files
 *.npy
@@ -15,4 +15,4 @@ __pycache__/
 .DS_Store
 
 # Environment variables / API keys
-.env
+.env.env
