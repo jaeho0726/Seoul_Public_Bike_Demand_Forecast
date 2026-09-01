@@ -17,9 +17,8 @@ Weather_API_Key = os.getenv("KMA_API_KEY")
 
 print("API key exists:", Weather_API_Key is not None)
 
-if Weather_API_Key:
-    print("API key length:", len(Weather_API_Key))
-    print("API key preview:", Weather_API_Key[:5] + "...")
+if not Weather_API_Key:
+    raise RuntimeError("KMA_API_KEY 환경변수가 설정되어 있지 않습니다.")
 
 MAPPING_CSV = "./dataset/seoul_district_kma_grid.csv"
 
@@ -626,6 +625,8 @@ def get_historical_forecasts(
     )
 
     return final_df
+
+    time.sleep(2)
 
 
 # =========================================================
