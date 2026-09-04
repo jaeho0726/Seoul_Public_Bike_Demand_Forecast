@@ -9,13 +9,13 @@ from pathlib import Path
 
 
 
-# Combining daily CSV files into one CSV file
+# Combining daily bike usage CSV files into one CSV file
 # =========================================================
 
-def combine_daily_csv_files():
+def combine_daily_bike_data():
 
-    ## Parent folder containing Jan_2022, Feb_2022, ..., Dec_2023
-    daily_data_dir = Path("dataset/daily_data")
+    ## Parent folder containing Jan_2024, Feb_2024, ..., Dec_2024
+    daily_data_dir = Path("dataset/daily_bike_data")
 
     ## Final combined CSV location
     output_file = Path("dataset/seoul_bike_daily_data.csv")
@@ -79,10 +79,7 @@ def combine_daily_csv_files():
         "DATE": "date",
         "Day_of_Week": "day_of_week",
         "Is_Holiday": "is_holiday",
-        "Is_Weekend": "is_weekend",
-        "tempmax": "temp_max",
-        "tempmin": "temp_min",
-        "feelslike": "feels_like",
+        "Is_Weekend": "is_weekend"
         }
     
     combined_df = combined_df.rename(columns=columns_rename_map)
@@ -103,11 +100,11 @@ def combine_daily_csv_files():
     return combined_df
 
 
-combined_bike_df = combine_daily_csv_files()
+combined_bike_df = combine_daily_bike_data()
 
 
 
-# Data Checking
+# Bike Data Checking
 # =========================================================
 
 ## Checking Data Types
@@ -118,3 +115,115 @@ print(combined_bike_df.dtypes)
 ## Checking Null Values
 print("\nNull Values:")
 print(combined_bike_df.isnull().sum())
+
+
+
+# Combining daily weather CSV files into one CSV file
+# =========================================================
+
+def combine_weather_forecast_data():
+    weather_files = [
+        Path("dataset/weather_forecast_2024.csv"),
+        Path("dataset/weather_forecast_2025.csv")
+    ]
+
+    output_file = Path("dataset/seoul_weather_daily_data.csv")
+
+
+    weather_dataframes = []
+
+    for file_path in weather_files:
+
+        # Check whether the file exists
+        if not file_path.exists():
+            raise FileNotFoundError(
+                f"Weather file not found: {file_path.resolve()}"
+            )
+
+        try:
+            weather_df = pd.read_csv(file_path)
+
+            if weather_df.empty:
+                raise ValueError(
+                    f"Weather file is empty: {file_path}"
+                )
+
+            weather_dataframes.append(weather_df)
+
+        except Exception as error:
+            raise RuntimeError(
+                f"Could not read {file_path}: {error}"
+            )
+
+
+    # Combine 2024 and 2025 weather data
+    combined_weather_df = pd.concat(
+        weather_dataframes,
+        ignore_index=True
+    )
+
+    # Converting 'DATE' column to datetime
+    combined_weather_df["date"] = pd.to_datetime(
+        combined_weather_df["date"].astype(str),
+        format="%Y%m%d"
+    )
+
+    # Sort by date and column
+    combined_weather_df = (
+        combined_weather_df
+        .sort_values(
+            by=[
+                "date",
+                "district",
+            ]
+        )
+        .reset_index(drop=True)
+    )
+
+    ## Save as one CSV
+    combined_weather_df.to_csv(
+        output_file,
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    return combined_weather_df
+
+combined_weather_df = combine_weather_forecast_data()
+
+
+
+# Weather Data Checking
+# =========================================================
+
+print(
+    f"Total rows: "
+    f"{len(combined_weather_df):,}"
+)
+
+# Check duplicate date × district combinations
+duplicate_count = (
+    combined_weather_df
+    .duplicated(
+        subset=[
+            "date",
+            "district"
+        ]
+    )
+    .sum()
+)
+
+print(
+    f"Duplicate date-district rows: "
+    f"{duplicate_count}"
+)
+
+
+# Check null values
+print("\nNull Values:")
+
+print(
+    combined_weather_df
+    .isnull()
+    .sum()
+)
