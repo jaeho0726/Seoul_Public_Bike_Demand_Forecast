@@ -632,17 +632,17 @@ def get_historical_forecasts(
 # =========================================================
 # 10. 2024년 날씨 데이터 추출
 # =========================================================
-weather_2024 = get_historical_forecasts(
-    start_date="2024-01-01",
-    end_date="2024-12-31",
-    api_key=Weather_API_Key
-)
+# weather_2024 = get_historical_forecasts(
+#     start_date="2024-01-01",
+#     end_date="2024-12-31",
+#     api_key=Weather_API_Key
+# )
 
-weather_2024.to_csv(
-    "./dataset/daily_weather_data/weather_forecast_2024.csv",
-    index=False,
-    encoding="utf-8-sig"
-)
+# weather_2024.to_csv(
+#     "./dataset/daily_weather_data/weather_forecast_2024.csv",
+#     index=False,
+#     encoding="utf-8-sig"
+# )
 
 # =========================================================
 # 11. 2025년 날씨 데이터 추출
