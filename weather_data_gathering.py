@@ -639,7 +639,7 @@ weather_2024 = get_historical_forecasts(
 )
 
 weather_2024.to_csv(
-    "./dataset/weather_forecast_2024.csv",
+    "./dataset/daily_weather_data/weather_forecast_2024.csv",
     index=False,
     encoding="utf-8-sig"
 )
@@ -654,7 +654,7 @@ weather_2025 = get_historical_forecasts(
 )
 
 weather_2025.to_csv(
-    "./dataset/weather_forecast_2025.csv",
+    "./dataset/daily_weather_data/weather_forecast_2025.csv",
     index=False,
     encoding="utf-8-sig"
 )

@@ -14,7 +14,7 @@ from pathlib import Path
 
 def combine_daily_bike_data():
 
-    ## Parent folder containing Jan_2024, Feb_2024, ..., Dec_2024
+    ## Parent folder containing Jan_2024, Feb_2024, ..., Dec_2025
     daily_data_dir = Path("dataset/daily_bike_data")
 
     ## Final combined CSV location
@@ -106,11 +106,25 @@ combined_bike_df = combine_daily_bike_data()
 
 # Bike Data Checking
 # =========================================================
+print("\n" + "=" * 60)
+print("Bike Dataset")
+print("=" * 60)
 
 ## Checking Data Types
 print("\nData Types:")
 print(combined_bike_df.columns.tolist())
 print(combined_bike_df.dtypes)
+
+## Checking duplicate date × district combinations
+bike_duplicate_count = (
+    combined_bike_df
+    .duplicated(
+        subset=["date", "district"]
+    )
+    .sum()
+)
+
+print(f"\nBike duplicate date-district rows: {bike_duplicate_count}")
 
 ## Checking Null Values
 print("\nNull Values:")
@@ -123,8 +137,8 @@ print(combined_bike_df.isnull().sum())
 
 def combine_weather_forecast_data():
     weather_files = [
-        Path("dataset/weather_forecast_2024.csv"),
-        Path("dataset/weather_forecast_2025.csv")
+        Path("dataset/daily_weather_data/weather_forecast_2024.csv"),
+        Path("dataset/daily_weather_data/weather_forecast_2025.csv")
     ]
 
     output_file = Path("dataset/seoul_weather_daily_data.csv")
@@ -195,13 +209,13 @@ combined_weather_df = combine_weather_forecast_data()
 
 # Weather Data Checking
 # =========================================================
+print("\n" + "=" * 60)
+print("Weather Dataset")
+print("=" * 60)
+## Checking Total Rows
+print(f"Total rows: {len(combined_weather_df):,}")
 
-print(
-    f"Total rows: "
-    f"{len(combined_weather_df):,}"
-)
-
-# Check duplicate date × district combinations
+## Check duplicate date × district combinations
 duplicate_count = (
     combined_weather_df
     .duplicated(
@@ -213,17 +227,114 @@ duplicate_count = (
     .sum()
 )
 
-print(
-    f"Duplicate date-district rows: "
-    f"{duplicate_count}"
-)
+print(f"Duplicate date-district rows: {duplicate_count}")
 
-
-# Check null values
+## Check null values
 print("\nNull Values:")
 
-print(
-    combined_weather_df
-    .isnull()
-    .sum()
-)
+print(combined_weather_df.isnull().sum())
+
+
+
+# Merging Bike and Weather Data
+# =========================================================
+
+def merge_bike_weather_data(bike_df, weather_df):
+
+    ## Validating that both DataFrames have the same district names
+    bike_districts = set(bike_df["district"].unique())
+
+    weather_districts = set(weather_df["district"].unique())
+
+    if bike_districts != weather_districts:
+        print("\nDistrict mismatch found.")
+
+        print("Districts only in bike data:", bike_districts - weather_districts)
+
+        print("Districts only in weather data:", weather_districts - bike_districts)
+
+        raise ValueError("District names do not match between Bike and Weather datasets.")
+
+    ## Merging on 'date' and 'district'
+    merged_df = pd.merge(
+        bike_df,
+        weather_df,
+
+        ### Merge based on forecast date and district
+        on=["date", "district",],
+
+        ### Keep every bike usage row
+        how="left",
+
+        ### Both datasets should contain only one row for each date-district combination
+        validate="one_to_one",
+
+        ### Used temporarily to check merge result
+        indicator=True
+    )
+
+    ## Check for any rows that did not merge successfully
+    merge_result = (
+        merged_df["_merge"]
+        .value_counts()
+    )
+
+    print("\nMerge Result:")
+    print(merge_result)
+
+    unmatched_rows = (merged_df["_merge"] != "both").sum()
+
+    if unmatched_rows > 0:
+        print(f"\nWarning: {unmatched_rows} bike rows could not be matched with weather data.")
+
+        print(
+            merged_df.loc[
+                merged_df["_merge"] != "both",
+                ["date", "district"]
+            ]
+            .head(20)
+        )
+
+        raise ValueError("Some bike rows could not be matched with weather data.")
+
+    merged_df = merged_df.drop(columns=["_merge"])
+
+    ## Sort by date and district
+    merged_df = (merged_df.sort_values(by=["date", "district"]).reset_index(drop=True))
+
+    ## Save the merged DataFrame to CSV
+    output_file = Path("dataset/seoul_bike_weather_data.csv")
+
+    merged_df.to_csv(
+        output_file,
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    return merged_df
+
+final_df = merge_bike_weather_data(combined_bike_df, combined_weather_df)
+
+
+
+# Final Data Checking
+# =========================================================
+print("\n" + "=" * 60)
+print("Final Bike + Weather Dataset")
+print("=" * 60)
+
+print(f"Total rows: {len(final_df):,}")
+
+print(f"Number of dates: {final_df['date'].nunique():,}")
+
+print(f"Number of districts: {final_df['district'].nunique()}")
+
+
+print("\nNull Values:")
+print(final_df.isnull().sum())
+
+print("\nColumns:")
+print(final_df.columns.tolist())
+
+print("\nData Types:")
+print(final_df.dtypes)
