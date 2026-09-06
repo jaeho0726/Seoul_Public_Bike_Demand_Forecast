@@ -22,8 +22,7 @@ import joblib
 
 # Loading Dataset
 # =========================================================
-bike_df = pd.read_csv("dataset/seoul_bike_daily_data.csv", parse_dates=["date"])
-
+bike_weather_df= pd.read_csv("dataset/seoul_bike_weather_forecast_data.csv", parse_dates=["date"])
 
 # Defining Feature & Target Variables
 # =========================================================
@@ -34,9 +33,9 @@ feature_columns = [
     "is_weekend",
     "temp_max",
     "temp_min",
-    "feels_like",
-    "humidity",
-    "precip",
+    "humidity_mean",
+    "precip_prob_max",
+    "wind_speed_mean"
 ]
 
 target_columns = [
@@ -44,9 +43,9 @@ target_columns = [
     "avg_use_time",
 ]
 
-X = bike_df[feature_columns].copy()
-y = bike_df[target_columns].copy()
-dates = bike_df["date"].copy()
+X = bike_weather_df[feature_columns].copy()
+y = bike_weather_df[target_columns].copy()
+dates = bike_weather_df["date"].copy()
 
 print("\nX shape:", X.shape)
 print("\ny shape:", y.shape)
@@ -54,7 +53,7 @@ print("\ny shape:", y.shape)
 
 # Train Test Split
 # =========================================================
-test_start_date = pd.Timestamp("2023-08-01")
+test_start_date = pd.Timestamp("2025-08-01")
 
 train_mask = dates < test_start_date
 test_mask = dates >= test_start_date
@@ -90,9 +89,9 @@ numerical_features = [
     "is_weekend",
     "temp_max",
     "temp_min",
-    "feels_like",
-    "humidity",
-    "precip",
+    "humidity_mean",
+    "precip_prob_max",
+    "wind_speed_mean",
 ]
 
 categorical_transformer = OneHotEncoder(
@@ -274,7 +273,7 @@ all_evaluation_df["MAE_improvement"] = (
         )
         / baseline_mae_dict[row["target"]]
         * 100,
-        axis=1,
+        axis=1
     )
 )
 
@@ -293,84 +292,48 @@ print(
     })
 )
 
-
-# Result Analysis
+# Selecting Best Models
 # =========================================================
 BEST_MODELS = {
     "use_count": "Random Forest",
     "avg_use_time": "HistGradientBoosting",
 }
 
+
 ## Creating dataframe of actual test values and predicted values
 analysis_df = pd.DataFrame({
+
     "date": test_dates.reset_index(drop=True),
 
-    "district": (
-        X_test["district"]
-        .reset_index(drop=True)
-    ),
+    "district": X_test["district"].reset_index(drop=True),
 
-    "day_of_week": (
-        X_test["day_of_week"]
-        .reset_index(drop=True)
-    ),
+    "day_of_week": X_test["day_of_week"].reset_index(drop=True),
 
-    "is_holiday": (
-        X_test["is_holiday"]
-        .reset_index(drop=True)
-    ),
+    "is_holiday": X_test["is_holiday"].reset_index(drop=True),
 
-    "is_weekend": (
-        X_test["is_weekend"]
-        .reset_index(drop=True)
-    ),
+    "is_weekend": X_test["is_weekend"].reset_index(drop=True),
 
-    "precip": (
-        X_test["precip"]
-        .reset_index(drop=True)
-    ),
+    "precip_prob_max": X_test["precip_prob_max"].reset_index(drop=True),
 
-    # Actual values
-    "use_count_actual": (
-        y_test["use_count"]
-        .reset_index(drop=True)
-    ),
+    "use_count_actual": y_test["use_count"].reset_index(drop=True),
 
-    "avg_use_time_actual": (
-        y_test["avg_use_time"]
-        .reset_index(drop=True)
-    ),
+    "avg_use_time_actual": y_test["avg_use_time"].reset_index(drop=True),
 
-    # Predicted values
-    "use_count_pred": predictions[
-        "use_count"
-    ][BEST_MODELS["use_count"]],
+    "use_count_pred": predictions["use_count"][BEST_MODELS["use_count"]],
 
-    "avg_use_time_pred": predictions[
-        "avg_use_time"
-    ][BEST_MODELS["avg_use_time"]],
+    "avg_use_time_pred": predictions["avg_use_time"][BEST_MODELS["avg_use_time"]]
 })
 
 ## Residual > 0 : predicted value is less than the actual value
 ## Residual < 0 : predicted value is greater than the actual value
-analysis_df["use_count_residual"] = (
-    analysis_df["use_count_actual"]
-    - analysis_df["use_count_pred"]
-)
+analysis_df["use_count_residual"] = (analysis_df["use_count_actual"] - analysis_df["use_count_pred"])
 
-analysis_df["avg_use_time_residual"] = (
-    analysis_df["avg_use_time_actual"]
-    - analysis_df["avg_use_time_pred"]
-)
+analysis_df["avg_use_time_residual"] = (analysis_df["avg_use_time_actual"] - analysis_df["avg_use_time_pred"])
 
 ## Absolute value of difference
-analysis_df["use_count_abs_error"] = (
-    analysis_df["use_count_residual"].abs()
-)
+analysis_df["use_count_abs_error"] = (analysis_df["use_count_residual"].abs())
 
-analysis_df["avg_use_time_abs_error"] = (
-    analysis_df["avg_use_time_residual"].abs()
-)
+analysis_df["avg_use_time_abs_error"] = (analysis_df["avg_use_time_residual"].abs())
 
 ## Actual vs Predicted
 ### use_count 
@@ -379,31 +342,29 @@ plt.figure(figsize=(7, 7))
 plt.scatter(
     analysis_df["use_count_actual"],
     analysis_df["use_count_pred"],
-    alpha=0.4,
+    alpha=0.4
 )
 
 min_value = min(
     analysis_df["use_count_actual"].min(),
-    analysis_df["use_count_pred"].min(),
+    analysis_df["use_count_pred"].min()
 )
 
 max_value = max(
     analysis_df["use_count_actual"].max(),
-    analysis_df["use_count_pred"].max(),
+    analysis_df["use_count_pred"].max()
 )
 
 plt.plot(
     [min_value, max_value],
     [min_value, max_value],
-    linestyle="--",
+    linestyle="--"
 )
 
 plt.xlabel("Actual use_count")
 plt.ylabel("Predicted use_count")
 
-plt.title(
-    "Random Forest - Actual vs Predicted use_count"
-)
+plt.title("Random Forest - Actual vs Predicted use_count")
 
 plt.show()
 
@@ -413,32 +374,29 @@ plt.figure(figsize=(7, 7))
 plt.scatter(
     analysis_df["avg_use_time_actual"],
     analysis_df["avg_use_time_pred"],
-    alpha=0.4,
+    alpha=0.4
 )
 
 min_value = min(
     analysis_df["avg_use_time_actual"].min(),
-    analysis_df["avg_use_time_pred"].min(),
+    analysis_df["avg_use_time_pred"].min()
 )
 
 max_value = max(
     analysis_df["avg_use_time_actual"].max(),
-    analysis_df["avg_use_time_pred"].max(),
+    analysis_df["avg_use_time_pred"].max()
 )
 
 plt.plot(
     [min_value, max_value],
     [min_value, max_value],
-    linestyle="--",
+    linestyle="--"
 )
 
 plt.xlabel("Actual avg_use_time")
 plt.ylabel("Predicted avg_use_time")
 
-plt.title(
-    "HistGradientBoosting - "
-    "Actual vs Predicted avg_use_time"
-)
+plt.title("HistGradientBoosting - Actual vs Predicted avg_use_time")
 
 plt.show()
 
@@ -470,7 +428,7 @@ district_error_df = (
         avg_use_time_MAE=(
             "avg_use_time_abs_error",
             "mean",
-        ),
+        )
     )
     .reset_index()
 )
@@ -480,13 +438,7 @@ print("\n" + "=" * 60)
 print("District Error Analysis")
 print("=" * 60)
 
-print(
-    district_error_df
-    .sort_values(
-        "use_count_MAE"
-    )
-    .round(3)
-)
+print(district_error_df.sort_values("use_count_MAE").round(3))
 
 district_use_count_plot = (
     district_error_df
@@ -504,16 +456,11 @@ plt.barh(
 plt.xlabel("MAE")
 plt.ylabel("District")
 
-plt.title(
-    "Random Forest - use_count MAE by District"
-)
+plt.title("Random Forest - use_count MAE by District")
 
 plt.show()
 
-district_avg_time_plot = (
-    district_error_df
-    .sort_values("avg_use_time_MAE")
-)
+district_avg_time_plot = (district_error_df.sort_values("avg_use_time_MAE"))
 
 
 plt.figure(figsize=(10, 8))
@@ -604,15 +551,12 @@ daily_use_count_df = (
         predicted=(
             "use_count_pred",
             "sum",
-        ),
+        )
     )
     .reset_index()
 )
 
-daily_use_count_plot = (
-    daily_use_count_df
-    .tail(60)
-)
+daily_use_count_plot = (daily_use_count_df.tail(60))
 
 
 plt.figure(figsize=(14, 6))
@@ -620,22 +564,19 @@ plt.figure(figsize=(14, 6))
 plt.plot(
     daily_use_count_plot["date"],
     daily_use_count_plot["actual"],
-    label="Actual",
+    label="Actual"
 )
 
 plt.plot(
     daily_use_count_plot["date"],
     daily_use_count_plot["predicted"],
-    label="Predicted",
+    label="Predicted"
 )
 
 plt.xlabel("Date")
 plt.ylabel("Total use_count")
 
-plt.title(
-    f"Daily Total use_count - "
-    f"Last {60} Days"
-)
+plt.title(f"Daily Total use_count - Last {60} Days")
 
 plt.legend()
 
@@ -657,16 +598,13 @@ daily_avg_time_df = (
         predicted=(
             "avg_use_time_pred",
             "mean",
-        ),
+        )
     )
     .reset_index()
 )
 
 
-daily_avg_time_plot = (
-    daily_avg_time_df
-    .tail(60)
-)
+daily_avg_time_plot = (daily_avg_time_df.tail(60))
 
 
 plt.figure(figsize=(14, 6))
@@ -674,22 +612,19 @@ plt.figure(figsize=(14, 6))
 plt.plot(
     daily_avg_time_plot["date"],
     daily_avg_time_plot["actual"],
-    label="Actual",
+    label="Actual"
 )
 
 plt.plot(
     daily_avg_time_plot["date"],
     daily_avg_time_plot["predicted"],
-    label="Predicted",
+    label="Predicted"
 )
 
 plt.xlabel("Date")
 plt.ylabel("Average use time")
 
-plt.title(
-    f"Daily Average use time - "
-    f"Last {60} Days"
-)
+plt.title(f"Daily Average use time - Last {60} Days")
 
 plt.legend()
 
@@ -702,7 +637,7 @@ plt.show()
 ## Performance by Condition
 ### Rain vs No Rain
 analysis_df["rain_condition"] = (
-    analysis_df["precip"] > 0
+    analysis_df["precip_prob_max"] > 0
 )
 
 analysis_df["rain_condition"] = (
@@ -750,10 +685,9 @@ analysis_df["weekend_condition"] = (
     analysis_df["is_weekend"]
     .map({
         True: "Weekend",
-        False: "Weekday",
+        False: "Weekday"
     })
 )
-
 
 weekend_error_df = (
     analysis_df
@@ -762,18 +696,18 @@ weekend_error_df = (
 
         sample_count=(
             "district",
-            "size",
+            "size"
         ),
 
         use_count_MAE=(
             "use_count_abs_error",
-            "mean",
+            "mean"
         ),
 
         avg_use_time_MAE=(
             "avg_use_time_abs_error",
-            "mean",
-        ),
+            "mean"
+        )
     )
 )
 
@@ -797,20 +731,11 @@ use_count_model = (
 
 use_count_importance_df = pd.DataFrame({
     "feature": processed_feature_names,
-
-    "importance": (
-        use_count_model.feature_importances_
-    ),
+    "importance": (use_count_model.feature_importances_)
 })
 
 
-use_count_importance_df = (
-    use_count_importance_df
-    .sort_values(
-        "importance",
-        ascending=False,
-    )
-)
+use_count_importance_df = use_count_importance_df.sort_values("importance", ascending=False)
 
 
 print("\n" + "=" * 60)
@@ -834,15 +759,12 @@ plt.figure(figsize=(10, 7))
 
 plt.barh(
     top_use_count_features["feature"],
-    top_use_count_features["importance"],
+    top_use_count_features["importance"]
 )
 
 plt.xlabel("Feature Importance")
 
-plt.title(
-    "Random Forest - "
-    "Feature Importance for use_count"
-)
+plt.title("Random Forest - Feature Importance for use_count")
 
 plt.tight_layout()
 
@@ -860,14 +782,11 @@ MODEL_DIR.mkdir(
 )
 
 ## Model for use_count
-final_use_count_model = (
-    trained_models["use_count"]["Random Forest"]
-)
+final_use_count_model = trained_models["use_count"]["Random Forest"]
 
 ## Model for avg_use_time
-final_avg_use_time_model = (
-    trained_models["avg_use_time"]["HistGradientBoosting"]
-)
+final_avg_use_time_model = trained_models["avg_use_time"]["HistGradientBoosting"]
+
 
 ## Saving preprocessor & final models
 joblib.dump(
@@ -905,7 +824,7 @@ model_info = {
 
     "avg_use_time_model": "HistGradientBoosting",
 
-    "test_start_date": "2023-08-01",
+    "test_start_date": "2025-08-01"
 }
 
 

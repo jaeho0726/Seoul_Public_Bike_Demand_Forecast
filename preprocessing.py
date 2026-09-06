@@ -303,9 +303,9 @@ def merge_bike_weather_data(bike_df, weather_df):
     columns_rename_map = {
         "TMX": "temp_max",
         "TMN": "temp_min",
-        "REH_Mean": "humidity_mean",
-        "POP_Max": "precip_prob_max",
-        "WSD_Mean": "wind_speed_mean"
+        "REH_mean": "humidity_mean",
+        "POP_max": "precip_prob_max",
+        "WSD_mean": "wind_speed_mean"
     }
 
     merged_df = merged_df.rename(columns=columns_rename_map)

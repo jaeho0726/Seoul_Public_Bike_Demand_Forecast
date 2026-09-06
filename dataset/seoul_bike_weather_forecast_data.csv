@@ -1,4 +1,4 @@
-﻿district,use_count,avg_use_time,date,day_of_week,is_holiday,is_weekend,temp_max,temp_min,REH_mean,POP_max,WSD_mean
+﻿district,use_count,avg_use_time,date,day_of_week,is_holiday,is_weekend,temp_max,temp_min,humidity_mean,precip_prob_max,wind_speed_mean
 강남구,1267,27.004735595895816,2024-01-01,Monday,True,False,6.0,-2.0,79.79166666666667,60.0,1.2708333333333333
 강동구,1784,20.483183856502244,2024-01-01,Monday,True,False,6.0,-2.0,78.95833333333333,60.0,1.3375
 강북구,708,21.22316384180791,2024-01-01,Monday,True,False,3.0,-5.0,81.875,60.0,1.2958333333333332
