@@ -303,46 +303,21 @@ def merge_bike_weather_data(bike_df, weather_df):
     columns_rename_map = {
         "TMX": "temp_max",
         "TMN": "temp_min",
-        "REH_MEAN": "humidity_mean",
-        "POP_MAX": "precip_prob_max",
-        "WSD_MEAN": "wind_speed_mean"
+        "REH_Mean": "humidity_mean",
+        "POP_Max": "precip_prob_max",
+        "WSD_Mean": "wind_speed_mean"
     }
 
     merged_df = merged_df.rename(columns=columns_rename_map)
 
     ## Dropping unnecessary columns
-    count_columns = [
-        "REH_count",
-        "POP_count",
-        "WSD_count",
-    ]
+    columns_to_drop = ["tmfc", "REH_count", "POP_count", "WSD_count"]
 
-    for column in count_columns:
-        invalid_count = (
-            merged_df[column] != 24
-        ).sum()
+    merged_df = merged_df.drop(columns=columns_to_drop)
 
-        print(
-            f"{column}: "
-            f"{invalid_count} rows are not equal to 24."
-        )
+    ## Cleaning District Names (removing any leading/trailing whitespace)
+    merged_df["district"] = merged_df["district"].str.strip()
 
-    invalid_count_rows = merged_df[
-        (merged_df["REH_count"] != 24)
-        | (merged_df["POP_count"] != 24)
-        | (merged_df["WSD_count"] != 24)
-    ][
-        [
-            "date",
-            "district",
-            "REH_count",
-            "POP_count",
-            "WSD_count",
-        ]
-    ]
-
-    print(invalid_count_rows)
-    
     ## Sort by date and district
     merged_df = (merged_df.sort_values(by=["date", "district"]).reset_index(drop=True))
 

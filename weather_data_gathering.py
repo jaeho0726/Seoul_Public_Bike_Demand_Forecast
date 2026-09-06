@@ -25,7 +25,7 @@ MAPPING_CSV = "./dataset/seoul_district_kma_grid.csv"
 CACHE_DIR = Path("kma_forecast_cache")
 CACHE_DIR.mkdir(exist_ok=True)
 
-OUTPUT_DIR = Path("./dataset/daily_weather")
+OUTPUT_DIR = Path("./dataset/daily_weather_data")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 GRID_X = 149

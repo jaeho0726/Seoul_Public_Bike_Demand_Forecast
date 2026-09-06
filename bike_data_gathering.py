@@ -172,7 +172,7 @@ def get_station_data():
   return station_data_df_cleaned
 
 ## Function of Creating an Ultimate DataFrame Containing All Daily Data of 2024
-save_dir = Path("dataset/daily_data")
+save_dir = Path("dataset/daily_bike_data")
 save_dir.mkdir(parents=True, exist_ok=True)
 
 dates = pd.date_range(
