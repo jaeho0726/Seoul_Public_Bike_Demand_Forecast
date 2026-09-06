@@ -624,7 +624,7 @@ plt.plot(
 plt.xlabel("Date")
 plt.ylabel("Average use time")
 
-plt.title(f"Daily Average use time - Last {60} Days")
+plt.title(f"Mean District avg_use_time - Last {60} Days")
 
 plt.legend()
 
@@ -635,51 +635,6 @@ plt.tight_layout()
 plt.show()
 
 ## Performance by Condition
-### Rain vs No Rain
-analysis_df["rain_condition"] = (
-    analysis_df["precip_prob_max"] > 0
-)
-
-analysis_df["rain_condition"] = (
-    analysis_df["rain_condition"]
-    .map({
-        True: "Rain",
-        False: "No Rain",
-    })
-)
-
-
-rain_error_df = (
-    analysis_df
-    .groupby("rain_condition")
-    .agg(
-
-        sample_count=(
-            "district",
-            "size",
-        ),
-
-        use_count_MAE=(
-            "use_count_abs_error",
-            "mean",
-        ),
-
-        avg_use_time_MAE=(
-            "avg_use_time_abs_error",
-            "mean",
-        ),
-    )
-)
-
-
-print("\n" + "=" * 60)
-print("Rain vs No Rain")
-print("=" * 60)
-
-print(
-    rain_error_df.round(3)
-)
-
 ### Weekday vs Weekend
 analysis_df["weekend_condition"] = (
     analysis_df["is_weekend"]
@@ -765,6 +720,55 @@ plt.barh(
 plt.xlabel("Feature Importance")
 
 plt.title("Random Forest - Feature Importance for use_count")
+
+plt.tight_layout()
+
+plt.show()
+
+### HistGradientBoosting Permutation Importance
+avg_use_time_model = (
+    trained_models["avg_use_time"][
+        BEST_MODELS["avg_use_time"]
+    ]
+)
+
+avg_use_time_permutation = permutation_importance(
+    avg_use_time_model,
+    X_test_processed,
+    y_test["avg_use_time"],
+    n_repeats=10,
+    random_state=42,
+    scoring="neg_mean_absolute_error",
+    n_jobs=-1
+)
+
+avg_use_time_importance_df = pd.DataFrame({
+    "feature": processed_feature_names,
+    "importance": avg_use_time_permutation.importances_mean,
+    "importance_std": avg_use_time_permutation.importances_std
+})
+
+avg_use_time_importance_df = avg_use_time_importance_df.sort_values("importance", ascending=False)
+
+print("\n" + "=" * 60)
+print("avg_use_time Permutation Importance")
+print("=" * 60)
+
+print(avg_use_time_importance_df.head(15).round(4))
+
+top_avg_use_time_features = avg_use_time_importance_df.head(15).sort_values("importance")
+
+
+plt.figure(figsize=(10, 7))
+
+plt.barh(
+    top_avg_use_time_features["feature"],
+    top_avg_use_time_features["importance"]
+)
+
+plt.xlabel("Permutation Importance (MAE Increase)")
+
+plt.title("HistGradientBoosting - Permutation Importance for avg_use_time")
 
 plt.tight_layout()
 
