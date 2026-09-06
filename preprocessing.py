@@ -322,7 +322,7 @@ def merge_bike_weather_data(bike_df, weather_df):
     merged_df = (merged_df.sort_values(by=["date", "district"]).reset_index(drop=True))
 
     ## Save the merged DataFrame to CSV
-    output_file = Path("dataset/seoul_bike_weather_data.csv")
+    output_file = Path("dataset/seoul_bike_weather_forecast_data.csv")
 
     merged_df.to_csv(
         output_file,
@@ -339,7 +339,7 @@ final_df = merge_bike_weather_data(combined_bike_df, combined_weather_df)
 # Final Data Checking
 # =========================================================
 print("\n" + "=" * 60)
-print("Final Bike + Weather Dataset")
+print("Final Bike + Weather ForecastDataset")
 print("=" * 60)
 
 print(f"Total rows: {len(final_df):,}")
