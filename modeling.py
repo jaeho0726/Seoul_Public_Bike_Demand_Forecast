@@ -11,11 +11,11 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
-
 from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.inspection import permutation_importance
 
 import matplotlib.pyplot as plt
-from sklearn.inspection import permutation_importance
+from matplotlib import font_manager
 
 from pathlib import Path
 import joblib
@@ -330,6 +330,19 @@ analysis_df = pd.DataFrame({
     "avg_use_time_pred": predictions["avg_use_time"][BEST_MODELS["avg_use_time"]]
 })
 
+# Visualization
+# =========================================================
+## Korean Font Settings 
+plt.rcParams["font.family"] = "AppleGothic"
+plt.rcParams["axes.unicode_minus"] = False
+
+FIGURE_DIR = Path("results") / "figures"
+
+FIGURE_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
 ## Residual > 0 : predicted value is less than the actual value
 ## Residual < 0 : predicted value is greater than the actual value
 analysis_df["use_count_residual"] = (analysis_df["use_count_actual"] - analysis_df["use_count_pred"])
@@ -372,6 +385,8 @@ plt.ylabel("Predicted use_count")
 
 plt.title("Random Forest - Actual vs Predicted use_count")
 
+plt.savefig(FIGURE_DIR / "use_count_actual_vs_predicted.png", dpi=300, bbox_inches="tight")
+
 plt.show()
 
 ### avg_use_time
@@ -403,6 +418,8 @@ plt.xlabel("Actual avg_use_time")
 plt.ylabel("Predicted avg_use_time")
 
 plt.title("HistGradientBoosting - Actual vs Predicted avg_use_time")
+
+plt.savefig(FIGURE_DIR / "avg_use_time_actual_vs_predicted.png", dpi=300, bbox_inches="tight")
 
 plt.show()
 
@@ -464,6 +481,8 @@ plt.ylabel("District")
 
 plt.title("Random Forest - use_count MAE by District")
 
+plt.savefig(FIGURE_DIR / "use_count_mae_by_district.png", dpi=300, bbox_inches="tight")
+
 plt.show()
 
 district_avg_time_plot = (district_error_df.sort_values("avg_use_time_MAE"))
@@ -479,10 +498,9 @@ plt.barh(
 plt.xlabel("MAE (minutes)")
 plt.ylabel("District")
 
-plt.title(
-    "HistGradientBoosting - "
-    "avg_use_time MAE by District"
-)
+plt.title("HistGradientBoosting - avg_use_time MAE by District")
+
+plt.savefig(FIGURE_DIR / "avg_use_time_mae_by_district.png", dpi=300, bbox_inches="tight")
 
 plt.show()
 
@@ -590,6 +608,8 @@ plt.xticks(rotation=45)
 
 plt.tight_layout()
 
+plt.savefig(FIGURE_DIR / "daily_use_count_last_60_days.png", dpi=300, bbox_inches="tight")
+
 plt.show()
 
 daily_avg_time_df = (
@@ -637,6 +657,8 @@ plt.legend()
 plt.xticks(rotation=45)
 
 plt.tight_layout()
+
+plt.savefig(FIGURE_DIR / "daily_avg_use_time_last_60_days.png", dpi=300, bbox_inches="tight")
 
 plt.show()
 
@@ -695,7 +717,6 @@ use_count_importance_df = pd.DataFrame({
     "importance": (use_count_model.feature_importances_)
 })
 
-
 use_count_importance_df = use_count_importance_df.sort_values("importance", ascending=False)
 
 
@@ -728,6 +749,8 @@ plt.xlabel("Feature Importance")
 plt.title("Random Forest - Feature Importance for use_count")
 
 plt.tight_layout()
+
+plt.savefig(FIGURE_DIR / "use_count_feature_importance.png", dpi=300, bbox_inches="tight")
 
 plt.show()
 
@@ -777,6 +800,8 @@ plt.xlabel("Permutation Importance (MAE Increase)")
 plt.title("HistGradientBoosting - Permutation Importance for avg_use_time")
 
 plt.tight_layout()
+
+plt.savefig(FIGURE_DIR / "avg_use_time_permutation_importance.png", dpi=300, bbox_inches="tight")
 
 plt.show()
 
