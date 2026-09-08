@@ -704,6 +704,25 @@ print(
 )
 
 ## Feature Importance
+def clean_feature_name(feature_name):
+
+    feature_name = feature_name.replace(
+        "categorical__district_",
+        ""
+    )
+
+    feature_name = feature_name.replace(
+        "categorical__day_of_week_",
+        "day_of_week: "
+    )
+
+    feature_name = feature_name.replace(
+        "numerical__",
+        ""
+    )
+
+    return feature_name
+
 ### Random Forest Feature Importance
 use_count_model = (
     trained_models["use_count"][
@@ -711,11 +730,13 @@ use_count_model = (
     ]
 )
 
-
 use_count_importance_df = pd.DataFrame({
     "feature": processed_feature_names,
     "importance": (use_count_model.feature_importances_)
 })
+
+use_count_importance_df["feature"] = use_count_importance_df["feature"].apply(clean_feature_name)
+
 
 use_count_importance_df = use_count_importance_df.sort_values("importance", ascending=False)
 
@@ -776,6 +797,8 @@ avg_use_time_importance_df = pd.DataFrame({
     "importance": avg_use_time_permutation.importances_mean,
     "importance_std": avg_use_time_permutation.importances_std
 })
+
+avg_use_time_importance_df["feature"] = avg_use_time_importance_df["feature"].apply(clean_feature_name)
 
 avg_use_time_importance_df = avg_use_time_importance_df.sort_values("importance", ascending=False)
 
