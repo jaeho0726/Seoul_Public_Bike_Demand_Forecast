@@ -292,6 +292,12 @@ print(
     })
 )
 
+all_evaluation_df.to_csv(
+    Path("models") / "model_evaluation.csv",
+    index=False,
+    encoding="utf-8-sig"
+)
+
 # Selecting Best Models
 # =========================================================
 BEST_MODELS = {
@@ -786,11 +792,10 @@ MODEL_DIR.mkdir(
 )
 
 ## Model for use_count
-final_use_count_model = trained_models["use_count"]["Random Forest"]
+final_use_count_model = trained_models["use_count"][BEST_MODELS["use_count"]]
 
 ## Model for avg_use_time
-final_avg_use_time_model = trained_models["avg_use_time"]["HistGradientBoosting"]
-
+final_avg_use_time_model = trained_models["avg_use_time"][BEST_MODELS["avg_use_time"]]
 
 ## Saving preprocessor & final models
 joblib.dump(
@@ -819,18 +824,12 @@ district_baseline.to_csv(
 ## Saving model information
 model_info = {
     "feature_columns": feature_columns,
-
     "categorical_features": categorical_features,
-
     "numerical_features": numerical_features,
-
-    "use_count_model": "Random Forest",
-
-    "avg_use_time_model": "HistGradientBoosting",
-
+    "use_count_model": BEST_MODELS["use_count"],
+    "avg_use_time_model": BEST_MODELS["avg_use_time"],
     "test_start_date": "2025-08-01"
 }
-
 
 joblib.dump(
     model_info,
