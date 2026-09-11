@@ -354,6 +354,22 @@ analysis_df["use_count_abs_error"] = (analysis_df["use_count_residual"].abs())
 
 analysis_df["avg_use_time_abs_error"] = (analysis_df["avg_use_time_residual"].abs())
 
+## Saving Test Predictions for Inference Validation
+reference_predictions_df = analysis_df[
+    [
+        "date",
+        "district",
+        "use_count_pred",
+        "avg_use_time_pred"
+    ]
+].copy()
+
+reference_predictions_df.to_csv(
+    "results/modeling_test_predictions.csv",
+    index=False,
+    encoding="utf-8-sig"
+)
+
 ## Actual vs Predicted
 ### use_count 
 plt.figure(figsize=(7, 7))
