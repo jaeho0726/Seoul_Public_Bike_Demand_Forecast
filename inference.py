@@ -203,7 +203,7 @@ def prepare_model_input(weather_df, prediction_date):
         >= 5
     )
 
-    weather_df["is_holiday"] = bool(is_holiday(prediction_timestamp))
+    weather_df["is_holiday"] = bool(is_holiday(prediction_timestamp.strftime("%Y-%m-%d")))
 
     ## Use the exact same feature order as training
     feature_columns = model_info["feature_columns"]
@@ -293,6 +293,177 @@ def predict_bike_demand(weather_df, context=None):
 
 
 
+# Historical Inference Smoke Test
+# =========================================================
+def run_smoke_test(test_date="2025-08-01"):
+    """
+    Validate the saved preprocessing/model artifacts by
+    comparing inference predictions against predictions
+    originally generated in modeling.py.
+    """
+
+    print("\n" + "=" * 60)
+    print("Inference Smoke Test")
+    print("=" * 60)
+
+    ## 1. Select historical test date
+    prediction_timestamp = pd.Timestamp(test_date)
+
+    prediction_date = prediction_timestamp.date()
+
+    ## The model was trained using the previous day's 20:00 KMA forecast.
+    forecast_issued_at = datetime.combine(
+        prediction_date - timedelta(days=1),
+        time(20, 0),
+        tzinfo=KST
+    )
+
+    test_context = {
+        "current_time": forecast_issued_at,
+        "prediction_date": prediction_date,
+        "forecast_issued_at": forecast_issued_at,
+        "tmfc": forecast_issued_at.strftime("%Y%m%d%H"),
+        "target_date": prediction_timestamp.strftime("%Y%m%d")
+    }
+
+    print(f"Test Prediction Date: {prediction_date}")
+
+    print(f"Forecast Issued At: {forecast_issued_at}")
+
+
+    ## 2. Load historical dataset
+    historical_df = pd.read_csv(
+        "dataset/seoul_bike_weather_forecast_data.csv",
+        parse_dates=["date"]
+    )
+
+    historical_day_df = historical_df[historical_df["date"] == prediction_timestamp].copy()
+
+    if len(historical_day_df) != EXPECTED_DISTRICT_COUNT:
+        raise ValueError(
+            f"Expected {EXPECTED_DISTRICT_COUNT} rows for {test_date}, but found {len(historical_day_df)}."
+        )
+
+    ## Only weather columns are supplied to inference.
+    weather_df = historical_day_df[WEATHER_COLUMNS].copy()
+
+
+    ## 3. Run prediction using saved .pkl artifacts
+    inference_predictions_df, _ = (
+        predict_bike_demand(
+            weather_df,
+            context=test_context
+        )
+    )
+
+    print(f"\nInference Prediction Shape: {inference_predictions_df.shape}")
+
+
+    ## 4. Load modeling.py reference predictions
+    reference_path = Path("results/modeling_test_predictions.csv")
+    
+    if not reference_path.exists():
+        raise FileNotFoundError("Reference prediction file was not found. Run modeling.py first.")
+
+    reference_df = pd.read_csv(
+        reference_path,
+        parse_dates=["date"]
+    )
+
+    reference_day_df = reference_df[reference_df["date"] == prediction_timestamp].copy()
+
+    if len(reference_day_df) != EXPECTED_DISTRICT_COUNT:
+        raise ValueError(
+            f"Expected {EXPECTED_DISTRICT_COUNT} reference rows for {test_date}, but found {len(reference_day_df)}."
+        )
+
+
+    ## 5. Compare modeling vs inference predictions
+    comparison_df = (
+        inference_predictions_df[
+            [
+                "district",
+                "predicted_use_count",
+                "predicted_avg_use_time"
+            ]
+        ]
+        .merge(
+            reference_day_df[
+                [
+                    "district",
+                    "use_count_pred",
+                    "avg_use_time_pred"
+                ]
+            ],
+            on="district",
+            how="inner",
+            validate="one_to_one"
+        )
+    )
+
+    if len(comparison_df) != EXPECTED_DISTRICT_COUNT:
+        raise ValueError("District mismatch occurred during prediction comparison.")
+
+    comparison_df["use_count_difference"] = (comparison_df["predicted_use_count"] - comparison_df["use_count_pred"]).abs()
+
+    comparison_df["avg_use_time_difference"] = (
+        comparison_df["predicted_avg_use_time"] - comparison_df["avg_use_time_pred"]
+    ).abs()
+
+
+    ## 6. Numerical equality check
+    use_count_match = np.allclose(
+        comparison_df["predicted_use_count"],
+        comparison_df["use_count_pred"],
+        rtol=1e-10,
+        atol=1e-8
+    )
+
+    avg_use_time_match = np.allclose(
+        comparison_df["predicted_avg_use_time"],
+        comparison_df["avg_use_time_pred"],
+        rtol=1e-10,
+        atol=1e-8
+    )
+
+
+    ## 7. Print results
+    print("\n" + "-" * 60)
+
+    print(
+        "Maximum use_count difference:",
+        comparison_df["use_count_difference"].max()
+    )
+
+    print(
+        "Maximum avg_use_time difference:",
+        comparison_df["avg_use_time_difference"].max()
+    )
+
+    print("\nPrediction Comparison")
+
+    print(f"use_count match: {use_count_match}")
+
+    print(f"avg_use_time match: {avg_use_time_match}")
+
+    if use_count_match and avg_use_time_match:
+        print(
+            "\nSMOKE TEST PASSED:"
+            "\nSaved models reproduce modeling.py predictions."
+        )
+
+    else:
+        print(
+            "\nSMOKE TEST FAILED:"
+            "\nInference predictions differ from modeling.py predictions."
+        )
+
+    print("\nSample Comparison:")
+
+    print(comparison_df.head().round(6))
+
+    return comparison_df
+
 
 # Prediction Context Test
 # =========================================================
@@ -311,3 +482,6 @@ if __name__ == "__main__":
     print(f"Prediction Date: {context['prediction_date']}")
 
     print(f"KMA tmfc: {context['tmfc']}")
+
+    ## Smoke Test 
+    run_smoke_test(test_date="2025-08-01")
