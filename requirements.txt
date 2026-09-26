@@ -1,8 +1,9 @@
-pandas
-numpy
-requests
-holidayskr
-scikit-learn
-joblib
 streamlit
 plotly
+requests
+holidayskr
+
+scikit-learn==1.8.0
+joblib==1.5.3
+numpy==2.0.0
+pandas==2.3.0
