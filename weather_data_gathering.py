@@ -13,20 +13,20 @@ from datetime import datetime, timedelta
 # 0. 설정
 # =========================================================
 
-Weather_API_Key = os.getenv("KMA_API_KEY")
+BASE_DIR = Path(__file__).resolve().parent
 
-print("API key exists:", Weather_API_Key is not None)
+MAPPING_CSV = BASE_DIR / "dataset" / "seoul_district_kma_grid.csv"
+CACHE_DIR = BASE_DIR / "kma_forecast_cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = BASE_DIR / "dataset" / "daily_weather_data"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-if not Weather_API_Key:
-    raise RuntimeError("KMA_API_KEY 환경변수가 설정되어 있지 않습니다.")
+def get_kma_api_key():
+    api_key = os.getenv("KMA_API_KEY")
+    if not api_key:
+        raise RuntimeError("KMA_API_KEY environment variable is not set.")
+    return api_key
 
-MAPPING_CSV = "./dataset/seoul_district_kma_grid.csv"
-
-CACHE_DIR = Path("kma_forecast_cache")
-CACHE_DIR.mkdir(exist_ok=True)
-
-OUTPUT_DIR = Path("./dataset/daily_weather_data")
-OUTPUT_DIR.mkdir(exist_ok=True)
 
 GRID_X = 149
 GRID_Y = 253
@@ -368,7 +368,8 @@ def collect_daily_temperature(
 def get_all_districts_daily_forecast(
     target_date,
     api_key,
-    mapping_csv=MAPPING_CSV
+    mapping_csv=MAPPING_CSV,
+    tmfc=None
 ):
     """
     target_date = 실제 수요 예측 대상 날짜.
@@ -386,22 +387,13 @@ def get_all_districts_daily_forecast(
         )
     )
 
-    target_dt = datetime.strptime(
-        target_date,
-        "%Y%m%d"
-    )
-
-    previous_day = (
-        target_dt
-        - timedelta(days=1)
-    )
-
-    tmfc = (
-        previous_day.strftime(
+    if tmfc is None:
+        target_dt = datetime.strptime(
+            target_date,
             "%Y%m%d"
         )
-        + "20"
-    )
+        previous_day = target_dt - timedelta(days=1)
+        tmfc = previous_day.strftime("%Y%m%d") + "20"
 
     print(
         f"\nTarget={target_date}, "
@@ -520,6 +512,45 @@ def get_all_districts_daily_forecast(
         })
 
     return pd.DataFrame(rows)
+
+
+# =========================================================
+# Weather features for live inference
+# =========================================================
+def get_weather_for_inference(context, api_key=None, mapping_csv=MAPPING_CSV):
+    if api_key is None:
+        api_key = get_kma_api_key()
+
+    weather_df = get_all_districts_daily_forecast(
+        target_date=context["target_date"],
+        api_key=api_key,
+        mapping_csv=mapping_csv,
+        tmfc=context["tmfc"]
+    )
+
+    actual_tmfc_values = set(weather_df["tmfc"].astype(str).unique())
+    if actual_tmfc_values != {context["tmfc"]}:
+        raise ValueError(
+            f"KMA forecast issue mismatch. Expected {context['tmfc']}, "
+            f"received {sorted(actual_tmfc_values)}"
+        )
+
+    weather_df = weather_df.rename(columns={
+        "TMX": "temp_max",
+        "TMN": "temp_min",
+        "REH_mean": "humidity_mean",
+        "POP_max": "precip_prob_max",
+        "WSD_mean": "wind_speed_mean"
+    })
+
+    return weather_df[[
+        "district",
+        "temp_max",
+        "temp_min",
+        "humidity_mean",
+        "precip_prob_max",
+        "wind_speed_mean"
+    ]].copy()
 
 
 # =========================================================
@@ -647,14 +678,15 @@ def get_historical_forecasts(
 # =========================================================
 # 11. 2025년 날씨 데이터 추출
 # =========================================================
-weather_2025 = get_historical_forecasts(
-    start_date="2025-01-01",
-    end_date="2025-12-31",
-    api_key=Weather_API_Key
-)
-
-weather_2025.to_csv(
-    "./dataset/daily_weather_data/weather_forecast_2025.csv",
-    index=False,
-    encoding="utf-8-sig"
-)
+if __name__ == "__main__":
+    api_key = get_kma_api_key()
+    weather_2025 = get_historical_forecasts(
+        start_date="2025-01-01",
+        end_date="2025-12-31",
+        api_key=api_key
+    )
+    weather_2025.to_csv(
+        OUTPUT_DIR / "weather_forecast_2025.csv",
+        index=False,
+        encoding="utf-8-sig"
+    )
