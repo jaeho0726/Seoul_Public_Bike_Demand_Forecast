@@ -14,5 +14,8 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Environment variables / API keys
-.env.env
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml

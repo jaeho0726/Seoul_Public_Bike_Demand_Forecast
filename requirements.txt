@@ -3,3 +3,6 @@ numpy
 requests
 holidayskr
 scikit-learn
+joblib
+streamlit
+plotly

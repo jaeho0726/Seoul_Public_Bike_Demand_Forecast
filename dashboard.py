@@ -1,6 +1,7 @@
 # ============================================================
 # Seoul Public Bike Demand Forecast - Dashboard
 # ============================================================
+
 import json
 import os
 
@@ -15,9 +16,10 @@ from inference import (
 )
 
 
-
+# ============================================================
 # Page Configuration
 # ============================================================
+
 st.set_page_config(
     page_title="Seoul Public Bike Demand Forecast",
     page_icon="🚲",
@@ -25,9 +27,10 @@ st.set_page_config(
 )
 
 
-
+# ============================================================
 # Custom CSS
 # ============================================================
+
 st.markdown(
     """
     <style>
@@ -95,24 +98,29 @@ st.markdown(
 )
 
 
-
+# ============================================================
 # Paths
 # ============================================================
+
 BASE_DIR = Path(__file__).resolve().parent
 
-GEOJSON_PATH = (BASE_DIR/"dataset"/"seoul_districts.geojson")
+GEOJSON_PATH = (
+    BASE_DIR
+    / "dataset"
+    / "seoul_districts.geojson"
+)
 
 
-
+# ============================================================
 # Streamlit Cloud Secret Support
 # ============================================================
+
 def configure_kma_api_key():
     """
     Use KMA_API_KEY from the environment when available.
 
     For Streamlit Community Cloud, also support a secret
-    named KMA_API_KEY in .streamlit/secrets.toml or the
-    deployment Secrets settings.
+    named KMA_API_KEY in deployment Secrets settings.
     """
 
     if os.getenv("KMA_API_KEY"):
@@ -135,9 +143,10 @@ def configure_kma_api_key():
 configure_kma_api_key()
 
 
-
+# ============================================================
 # Load GeoJSON
 # ============================================================
+
 @st.cache_data
 def load_geojson():
 
@@ -152,17 +161,30 @@ def load_geojson():
 seoul_geojson = load_geojson()
 
 
-
-# Live Prediction
 # ============================================================
+# Prediction Context
+# ============================================================
+
+# Create prediction context exactly once.
+#
+# This avoids a possible boundary inconsistency around 20:00 KST.
+# Every part of the live prediction pipeline will use these same
+# context values.
 context = get_prediction_context()
 
+
+# ============================================================
+# Live Prediction
+# ============================================================
 
 @st.cache_data(
     ttl=3600,
     show_spinner=False,
 )
 def load_live_predictions(
+    current_time,
+    prediction_date,
+    forecast_issued_at,
     tmfc,
     target_date,
 ):
@@ -170,21 +192,20 @@ def load_live_predictions(
     Retrieve KMA forecast data and generate the 25-district
     model predictions.
 
-    tmfc and target_date are cache keys, so after the 20:00
-    KST forecast switch Streamlit automatically uses a new
-    cache entry.
+    The full prediction context is passed into this cached
+    function so get_prediction_context() is not called again.
+
+    tmfc and target_date naturally create a new cache entry
+    when the 20:00 KST forecast switches.
     """
 
-    prediction_context = (
-        get_prediction_context()
-    )
-
-    # Guarantee that the inference call uses the exact
-    # forecast identifiers represented by this cache entry.
-    prediction_context["tmfc"] = tmfc
-    prediction_context[
-        "target_date"
-    ] = target_date
+    prediction_context = {
+        "current_time": current_time,
+        "prediction_date": prediction_date,
+        "forecast_issued_at": forecast_issued_at,
+        "tmfc": tmfc,
+        "target_date": target_date,
+    }
 
     predictions, prediction_context = (
         run_live_inference(
@@ -204,7 +225,18 @@ try:
     ):
         predictions, context = (
             load_live_predictions(
-                tmfc=context["tmfc"],
+                current_time=context[
+                    "current_time"
+                ],
+                prediction_date=context[
+                    "prediction_date"
+                ],
+                forecast_issued_at=context[
+                    "forecast_issued_at"
+                ],
+                tmfc=context[
+                    "tmfc"
+                ],
                 target_date=context[
                     "target_date"
                 ],
@@ -229,9 +261,10 @@ except Exception as exc:
     st.stop()
 
 
-
+# ============================================================
 # Validate GeoJSON / Prediction District Match
 # ============================================================
+
 geojson_districts = {
     feature["properties"][
         "SIG_KOR_NM"
@@ -248,7 +281,8 @@ prediction_districts = set(
 )
 
 if (
-    geojson_districts != prediction_districts
+    geojson_districts
+    != prediction_districts
 ):
     missing_from_predictions = (
         geojson_districts
@@ -282,9 +316,10 @@ if (
     st.stop()
 
 
-
+# ============================================================
 # Display Metadata
 # ============================================================
+
 prediction_date = (
     context["prediction_date"]
 )
@@ -328,9 +363,10 @@ else:
     )
 
 
-
+# ============================================================
 # Information Dialog
 # ============================================================
+
 @st.dialog(
     "About this forecast"
 )
@@ -363,9 +399,10 @@ def show_forecast_info():
     )
 
 
-
+# ============================================================
 # Header
 # ============================================================
+
 title_col, info_col = st.columns(
     [15, 1],
     vertical_alignment="center",
@@ -385,9 +422,10 @@ with info_col:
         show_forecast_info()
 
 
-
+# ============================================================
 # Forecast Information
 # ============================================================
+
 date_col, updated_col = (
     st.columns(2)
 )
@@ -411,9 +449,10 @@ st.caption(
 st.divider()
 
 
-
+# ============================================================
 # Metric Selector
 # ============================================================
+
 selected_metric = (
     st.segmented_control(
         "View",
@@ -466,9 +505,10 @@ else:
     )
 
 
-
+# ============================================================
 # Seoul Bike Green Scale
 # ============================================================
+
 SEOUL_BIKE_GREEN_SCALE = [
     "#E3F2E6",
     "#B8DEBF",
@@ -479,9 +519,10 @@ SEOUL_BIKE_GREEN_SCALE = [
 ]
 
 
-
+# ============================================================
 # Build Choropleth
 # ============================================================
+
 fig = px.choropleth(
     predictions,
     geojson=seoul_geojson,
@@ -548,9 +589,10 @@ fig.update_layout(
 )
 
 
-
+# ============================================================
 # Main Layout
 # ============================================================
+
 map_col, ranking_col = (
     st.columns([3, 1])
 )
@@ -567,8 +609,10 @@ with map_col:
     )
 
 
+# ============================================================
 # Top 3 Districts
 # ============================================================
+
 with ranking_col:
 
     st.subheader(
