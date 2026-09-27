@@ -2,7 +2,7 @@
 
 An end-to-end machine learning project for forecasting **next-day Seoul Public Bike (따릉이) usage across Seoul's 25 districts**.
 
-The project combines historical Seoul Public Bike usage data with Korea Meteorological Administration (KMA) weather forecasts, builds district-level daily features, compares multiple regression models, performs time-aware evaluation, and serves live predictions through an interactive Streamlit dashboard.
+The project combines historical Seoul Public Bike usage data with Korea Meteorological Administration (KMA) weather forecasts, builds district-level daily features, compares multiple regression models, and serves live predictions through an interactive Streamlit dashboard.
 
 The system predicts:
 
@@ -15,8 +15,8 @@ A key design choice is that the model uses the **KMA weather forecast available 
 
 ## Live Dashboard
 
-**Live app:**  
-`[ADD YOUR STREAMLIT URL HERE]`
+**Live Dashboard:**  
+[Link to Live Dashbaord](https://seoul-public-bike-demand-forecast.streamlit.app/)
 
 The deployed dashboard provides:
 
@@ -227,13 +227,13 @@ The weather pipeline retrieves nationwide KMA forecast grids and extracts the gr
 
 The project uses the following weather variables:
 
-| KMA Variable | Modeling Feature | Description |
-|---|---|---|
-| `TMX` | `temp_max` | Daily maximum temperature |
-| `TMN` | `temp_min` | Daily minimum temperature |
-| `REH` | `humidity_mean` | Mean relative humidity |
-| `POP` | `precip_prob_max` | Maximum precipitation probability |
-| `WSD` | `wind_speed_mean` | Mean wind speed |
+| KMA Variable | Modeling Feature  | Description                       |
+| ------------ | ----------------- | --------------------------------- |
+| `TMX`        | `temp_max`        | Daily maximum temperature         |
+| `TMN`        | `temp_min`        | Daily minimum temperature         |
+| `REH`        | `humidity_mean`   | Mean relative humidity            |
+| `POP`        | `precip_prob_max` | Maximum precipitation probability |
+| `WSD`        | `wind_speed_mean` | Mean wind speed                   |
 
 Hourly forecasts are aggregated into daily district-level features.
 
@@ -535,9 +535,9 @@ The models are trained independently for:
 
 The selected models are:
 
-| Target | Selected Model |
-|---|---|
-| `use_count` | Random Forest |
+| Target         | Selected Model       |
+| -------------- | -------------------- |
+| `use_count`    | Random Forest        |
 | `avg_use_time` | HistGradientBoosting |
 
 These selected models are serialized and reused by the live inference pipeline.
@@ -554,12 +554,12 @@ Evaluation uses:
 
 ### 12.1 Daily Rental Count
 
-| Model | MAE | R² | MAE Improvement vs Baseline |
-|---|---:|---:|---:|
-| District Mean Baseline | 1331.23 | 0.681 | 0.00% |
-| Decision Tree | 1010.12 | 0.795 | 24.12% |
-| **Random Forest** | **628.48** | **0.919** | **52.79%** |
-| HistGradientBoosting | 642.17 | 0.918 | 51.76% |
+| Model                  |        MAE |        R² | MAE Improvement vs Baseline |
+| ---------------------- | ---------: | --------: | --------------------------: |
+| District Mean Baseline |    1331.23 |     0.681 |                       0.00% |
+| Decision Tree          |    1010.12 |     0.795 |                      24.12% |
+| **Random Forest**      | **628.48** | **0.919** |                  **52.79%** |
+| HistGradientBoosting   |     642.17 |     0.918 |                      51.76% |
 
 The selected Random Forest model reduces MAE by approximately:
 
@@ -571,12 +571,12 @@ relative to the district-level historical mean baseline.
 
 ### 12.2 Average Use Time
 
-| Model | MAE | R² | MAE Improvement vs Baseline |
-|---|---:|---:|---:|
-| District Mean Baseline | 2.333 min | 0.371 | 0.00% |
-| Decision Tree | 1.514 min | 0.715 | 35.12% |
-| Random Forest | 1.237 min | 0.794 | 46.96% |
-| **HistGradientBoosting** | **1.165 min** | **0.819** | **50.06%** |
+| Model                    |           MAE |        R² | MAE Improvement vs Baseline |
+| ------------------------ | ------------: | --------: | --------------------------: |
+| District Mean Baseline   |     2.333 min |     0.371 |                       0.00% |
+| Decision Tree            |     1.514 min |     0.715 |                      35.12% |
+| Random Forest            |     1.237 min |     0.794 |                      46.96% |
+| **HistGradientBoosting** | **1.165 min** | **0.819** |                  **50.06%** |
 
 The selected HistGradientBoosting model reduces MAE by approximately:
 
