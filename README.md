@@ -55,11 +55,66 @@ This geographic granularity preserves district-level differences and makes the o
 
 ---
 
-## 2. Prediction Targets
+## 2. Project Structure
+
+```text
+Seoul_Public_Bike_Demand_Forecast/
+│
+├── dashboard.py
+│
+├── inference.py
+├── modeling.py
+├── preprocessing.py
+│
+├── bike_data_gathering.py
+├── weather_data_gathering.py
+├── kma_mapping.py
+│
+├── dataset/
+│   ├── seoul_bike_weather_forecast_data.csv
+│   ├── seoul_district_kma_grid.csv
+│   ├── seoul_districts.geojson
+│   ├── daily_weather_data/
+│   └── ...
+│
+├── models/
+│   ├── preprocessor.pkl
+│   ├── use_count_model.pkl
+│   ├── avg_use_time_model.pkl
+│   ├── model_info.pkl
+│   └── model_evaluation.csv
+│
+├── results/
+│   ├── modeling_test_predictions.csv
+│   └── figures/
+│       ├── use_count_actual_vs_predicted.png
+│       ├── avg_use_time_actual_vs_predicted.png
+│       ├── use_count_mae_by_district.png
+│       ├── avg_use_time_mae_by_district.png
+│       ├── daily_use_count_last_60_days.png
+│       ├── daily_avg_use_time_last_60_days.png
+│       ├── use_count_feature_importance.png
+│       └── avg_use_time_permutation_importance.png
+│
+├── kma_forecast_cache/
+│
+├── .streamlit/
+│   └── config.toml
+│
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
+
+Some generated datasets, caches, and secret files may be excluded through `.gitignore`.
+
+---
+
+## 3. Prediction Targets
 
 The project predicts two targets.
 
-### 2.1 Daily Rental Count
+### 3.1 Daily Rental Count
 
 `use_count`
 
@@ -67,7 +122,7 @@ The total number of Seoul Public Bike rentals within a district on a given day.
 
 This is treated as the primary **demand prediction** target.
 
-### 2.2 Average Use Time
+### 3.2 Average Use Time
 
 `avg_use_time`
 
@@ -77,7 +132,7 @@ The final model therefore produces two predictions for every district:
 
 ---
 
-## 3. Prediction Granularity
+## 4. Prediction Granularity
 
 Each modeling observation represents:
 
@@ -99,7 +154,7 @@ Station-level bike usage is aggregated to the district level before modeling.
 
 ---
 
-## 4. Forecasting Setup
+## 5. Forecasting Setup
 
 One of the most important parts of this project is the distinction between **actual future weather** and **weather forecasts available before the target date**.
 
@@ -160,9 +215,9 @@ This switching rule is implemented in `get_prediction_context()` inside `inferen
 
 ---
 
-## 5. Data Sources
+## 6. Data Sources
 
-### 5.1 Seoul Public Bike Data
+### 6.1 Seoul Public Bike Data
 
 Bike usage and station-related data are collected from the **Seoul Open Data Plaza**.
 
@@ -192,7 +247,7 @@ Relevant data includes:
 
 ---
 
-### 5.2 Korea Meteorological Administration Forecast Data
+### 6.2 Korea Meteorological Administration Forecast Data
 
 Weather forecasts are retrieved from the **Korea Meteorological Administration API Hub**.
 
@@ -238,7 +293,7 @@ wind_speed_mean
 
 ---
 
-### 5.3 Seoul District to KMA Grid Mapping
+### 6.3 Seoul District to KMA Grid Mapping
 
 KMA weather forecasts are provided on a national grid.
 
@@ -260,7 +315,7 @@ This allows the weather pipeline to retrieve one forecast value for each of Seou
 
 ---
 
-### 5.4 Seoul District Boundary Data
+### 6.4 Seoul District Boundary Data
 
 The dashboard uses a GeoJSON file containing Seoul's district boundaries.
 
@@ -290,7 +345,7 @@ GeoJSON["properties"]["SIG_KOR_NM"]
 
 ---
 
-## 6. Dataset Construction
+## 7. Dataset Construction
 
 The project builds the final modeling dataset by combining bike usage and weather forecasts at the same geographic and temporal level.
 
@@ -337,7 +392,7 @@ avg_use_time
 
 ---
 
-## 7. Train/Test Strategy
+## 8. Train/Test Strategy
 
 Because this is a time-series forecasting problem, the dataset is **not randomly shuffled** before evaluation.
 
@@ -361,39 +416,7 @@ This ensures that evaluation is performed on observations occurring after the tr
 
 ---
 
-## 8. Baseline Model
-
-Before comparing machine learning algorithms, the project defines a simple district-level historical mean baseline.
-
-For each Seoul district, the training-period mean is calculated separately for:
-
-```text
-use_count
-avg_use_time
-```
-
-For every test observation, the corresponding district's historical training mean becomes the baseline prediction.
-
-Conceptually:
-
-```text
-Training data
-        ↓
-mean use_count by district
-mean avg_use_time by district
-        ↓
-baseline test predictions
-```
-
-This gives a simple reference point for answering:
-
-> Does the machine learning model outperform using a district's historical average?
-
-The project reports MAE improvement relative to this baseline.
-
----
-
-## 10. Machine Learning Models
+## 9. Machine Learning Models
 
 Three tree-based regression models are compared for each target.
 
@@ -427,14 +450,11 @@ HistGradientBoostingRegressor(
 )
 ```
 
-The models are trained independently for:
-
-- `use_count`
-- `avg_use_time`
+The models are trained independently for: `use_count` and `avg_use_time`
 
 ---
 
-## 11. Model Selection
+## 10. Model Selection & Performance
 
 The selected models are:
 
@@ -445,17 +465,13 @@ The selected models are:
 
 These selected models are serialized and reused by the live inference pipeline.
 
----
-
-## 12. Model Performance
-
 Evaluation uses:
 
 - Mean Absolute Error (MAE)
 - R²
 - MAE improvement over the district-mean baseline
 
-### 12.1 Daily Rental Count
+### 10.1 Daily Rental Count
 
 | Model                  |        MAE |        R² | MAE Improvement vs Baseline |
 | ---------------------- | ---------: | --------: | --------------------------: |
@@ -464,15 +480,9 @@ Evaluation uses:
 | **Random Forest**      | **628.48** | **0.919** |                  **52.79%** |
 | HistGradientBoosting   |     642.17 |     0.918 |                      51.76% |
 
-The selected Random Forest model reduces MAE by approximately:
+The selected Random Forest model reduces MAE by approximately **52.79%** relative to the district-level historical mean baseline.
 
-```text
-52.79%
-```
-
-relative to the district-level historical mean baseline.
-
-### 12.2 Average Use Time
+### 10.2 Average Use Time
 
 | Model                    |           MAE |        R² | MAE Improvement vs Baseline |
 | ------------------------ | ------------: | --------: | --------------------------: |
@@ -481,28 +491,22 @@ relative to the district-level historical mean baseline.
 | Random Forest            |     1.237 min |     0.794 |                      46.96% |
 | **HistGradientBoosting** | **1.165 min** | **0.819** |                  **50.06%** |
 
-The selected HistGradientBoosting model reduces MAE by approximately:
-
-```text
-50.06%
-```
-
-relative to the district-level historical mean baseline.
+The selected HistGradientBoosting model reduces MAE by approximately **50.06%** relative to the district-level historical mean baseline.
 
 ---
 
-## 13. Model Evaluation and Error Analysis
+## 11. Model Evaluation and Error Analysis
 
 The modeling pipeline includes more than global MAE and R².
 
 It also evaluates model behavior through:
 
-- actual vs. predicted plots,
-- district-level MAE,
-- daily predicted vs. actual trends,
-- weekday vs. weekend performance,
-- feature importance,
-- permutation importance.
+- actual vs. predicted plots
+- district-level MAE
+- daily predicted vs. actual trends
+- weekday vs. weekend performance
+- feature importance
+- permutation importance
 
 Generated figures are saved under:
 
@@ -512,16 +516,14 @@ results/figures/
 
 Examples include:
 
-```text
-use_count_actual_vs_predicted.png
-avg_use_time_actual_vs_predicted.png
-use_count_mae_by_district.png
-avg_use_time_mae_by_district.png
-daily_use_count_last_60_days.png
-daily_avg_use_time_last_60_days.png
-use_count_feature_importance.png
-avg_use_time_permutation_importance.png
-```
+- use_count_actual_vs_predicted.png
+- avg_use_time_actual_vs_predicted.png
+- use_count_mae_by_district.png
+- avg_use_time_mae_by_district.png
+- daily_use_count_last_60_days.png
+- daily_avg_use_time_last_60_days.png
+- use_count_feature_importance.png
+- avg_use_time_permutation_importance.png
 
 The modeling script also saves test predictions for later inference validation:
 
@@ -531,7 +533,7 @@ results/modeling_test_predictions.csv
 
 ---
 
-## 14. Feature Importance
+## 12. Feature Importance
 
 Different interpretation methods are used for the two selected models.
 
@@ -563,7 +565,7 @@ A larger degradation indicates that the model depends more strongly on that feat
 
 ---
 
-## 15. Saved Model Artifacts
+## 13. Saved Model Artifacts
 
 After model selection, the following artifacts are saved:
 
@@ -580,7 +582,7 @@ These artifacts allow inference to reuse exactly the same preprocessing transfor
 
 ---
 
-## 16. Inference Pipeline
+## 14. Inference Pipeline
 
 `inference.py` converts live weather forecasts into district-level model predictions.
 
@@ -620,29 +622,29 @@ predicted_avg_use_time
 
 ---
 
-## 17. Inference Validation
+## 15. Inference Validation
 
 A historical smoke test is included to verify that the saved model artifacts reproduce predictions originally generated during modeling.
 
 The smoke test:
 
-1. selects a historical test date,
-2. reconstructs the corresponding weather features,
-3. loads the saved preprocessing and model artifacts,
-4. generates inference predictions,
-5. compares them against `modeling.py` predictions,
-6. checks numerical equality with `numpy.allclose()`.
+1. selects a historical test date
+2. reconstructs the corresponding weather features
+3. loads the saved preprocessing and model artifacts
+4. generates inference predictions
+5. compares them against `modeling.py` predictions
+6. checks numerical equality with `numpy.allclose()`
 
 This helps detect inconsistencies caused by:
 
-- preprocessing changes,
-- model serialization,
-- feature ordering,
-- inference implementation differences.
+- preprocessing changes
+- model serialization
+- feature ordering
+- inference implementation differences
 
 ---
 
-## 18. Live Weather Retrieval
+## 16. Live Weather Retrieval
 
 `weather_data_gathering.py` handles KMA forecast retrieval.
 
@@ -672,7 +674,7 @@ The cache is organized by forecast issue date and forecast variable.
 
 ---
 
-## 19. Interactive Dashboard
+## 17. Interactive Dashboard
 
 The project includes an interactive dashboard built with:
 
@@ -704,74 +706,43 @@ interactive Seoul map
 
 ---
 
-## 20. Dashboard Features
+## 18. Dashboard Features
 
-### 20.1 Choropleth Map
+### 18.1 Choropleth Map
 
 Districts are colored according to the selected prediction metric.
 
 A green continuous color scale is used to visually align the interface with Seoul Public Bike branding.
 
-District boundaries are outlined to improve geographic separation.
+### 18.2 Metric Selector
 
-### 20.2 Metric Selector
-
-Users can switch between:
-
-```text
-Rental Demand
-Average Use Time
-```
+Users can switch between 'Rental Demand' and 'Average Use Time'
 
 The selected metric determines:
 
-- map color,
-- legend,
-- Top 3 ranking.
+- map color
+- legend
+- Top 3 ranking
 
-### 20.3 Hover Information
+### 18.3 Hover Information
 
 Moving the cursor over any Seoul district displays:
 
-```text
-District name
-Predicted rentals
-Predicted average use time
-```
+- District name
+- Predicted rentals
+- Predicted average use time
 
-No additional click is required.
-
-### 20.4 Top 3 Districts
+### 18.4 Top 3 Districts
 
 The side panel dynamically shows the three highest districts for the selected metric.
 
-For Rental Demand:
+For Rental Demand, it shows top 3 highest predicted rental counts
 
-```text
-Highest predicted rental counts
-```
+For Average Use Time, it shows top 3 longest predicted average rental duration
 
-For Average Use Time:
+It also explains whether the user is viewing today's latest available prediction or tomorrow's newly generated prediction.
 
-```text
-Longest predicted average rental duration
-```
-
-### 20.5 Forecast Metadata
-
-The dashboard displays:
-
-```text
-Forecast for
-Last updated
-```
-
-It also explains whether the user is viewing:
-
-- today's latest available prediction, or
-- tomorrow's newly generated prediction.
-
-### 20.6 20:00 KST Behavior
+### 18.5 20:00 KST Behavior
 
 Before 20:00 KST:
 
@@ -789,118 +760,7 @@ using the KMA forecast issued at 20:00 KST.
 
 ---
 
-## 21. Deployment
-
-The dashboard is deployed using **Streamlit Community Cloud**.
-
-Deployment configuration includes:
-
-```text
-Entrypoint:
-dashboard.py
-
-Python:
-3.12
-```
-
-The deployment environment uses pinned machine-learning package versions to keep serialized scikit-learn models compatible with the environment in which they were created.
-
-Important package versions include:
-
-```text
-scikit-learn==1.8.0
-joblib==1.5.3
-numpy==2.0.0
-pandas==2.3.0
-```
-
----
-
-## 22. API Key Management
-
-The KMA API key is not committed to GitHub.
-
-For local execution, it is read from:
-
-```text
-KMA_API_KEY
-```
-
-For Streamlit Community Cloud, the key is stored through the deployment's **Secrets** configuration.
-
-Example:
-
-```toml
-KMA_API_KEY = "YOUR_KEY"
-```
-
-Secret files such as:
-
-```text
-.env
-.streamlit/secrets.toml
-```
-
-should remain excluded from version control.
-
----
-
-## 23. Project Structure
-
-```text
-Seoul_Public_Bike_Demand_Forecast/
-│
-├── dashboard.py
-│
-├── inference.py
-├── modeling.py
-├── preprocessing.py
-│
-├── bike_data_gathering.py
-├── weather_data_gathering.py
-├── kma_mapping.py
-│
-├── dataset/
-│   ├── seoul_bike_weather_forecast_data.csv
-│   ├── seoul_district_kma_grid.csv
-│   ├── seoul_districts.geojson
-│   ├── daily_weather_data/
-│   └── ...
-│
-├── models/
-│   ├── preprocessor.pkl
-│   ├── use_count_model.pkl
-│   ├── avg_use_time_model.pkl
-│   ├── model_info.pkl
-│   └── model_evaluation.csv
-│
-├── results/
-│   ├── modeling_test_predictions.csv
-│   └── figures/
-│       ├── use_count_actual_vs_predicted.png
-│       ├── avg_use_time_actual_vs_predicted.png
-│       ├── use_count_mae_by_district.png
-│       ├── avg_use_time_mae_by_district.png
-│       ├── daily_use_count_last_60_days.png
-│       ├── daily_avg_use_time_last_60_days.png
-│       ├── use_count_feature_importance.png
-│       └── avg_use_time_permutation_importance.png
-│
-├── kma_forecast_cache/
-│
-├── .streamlit/
-│   └── config.toml
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
-```
-
-Some generated datasets, caches, and secret files may be excluded through `.gitignore`.
-
----
-
-## 24. Running the Project Locally
+## 19. Running the Project Locally
 
 ### Clone the Repository
 
@@ -945,7 +805,7 @@ http://localhost:8501
 
 ---
 
-## 25. Reproducing Model Training
+## 20. Reproducing Model Training
 
 To rebuild the models from the processed modeling dataset:
 
@@ -955,78 +815,32 @@ python modeling.py
 
 The script:
 
-1. loads the merged bike-weather dataset,
-2. creates the chronological train/test split,
-3. preprocesses categorical variables,
-4. creates the district-level baseline,
-5. trains three machine learning models for each target,
-6. evaluates each model,
-7. generates diagnostic figures,
-8. saves selected models and metadata.
+1. loads the merged bike-weather dataset
+2. creates the chronological train/test split
+3. preprocesses categorical variables
+4. creates the district-level baseline
+5. trains three machine learning models for each target
+6. evaluates each model
+7. generates diagnostic figures
+8. saves selected models and metadata
 
-The selected artifacts are written to:
+The selected artifacts are written to `models/`
 
-```text
-models/
-```
-
-and evaluation outputs are written to:
-
-```text
-results/
-```
+and evaluation outputs are written to `results/`
 
 ---
 
-## 26. Technology Stack
-
-### Programming
-
-- Python 3.12
-
-### Data Processing
-
-- pandas
-- NumPy
-
-### Machine Learning
-
-- scikit-learn
-- joblib
-
-### API / Data Collection
-
-- Requests
-- Seoul Open Data Plaza
-- Korea Meteorological Administration API Hub
-
-### Visualization
-
-- Matplotlib
-- Plotly
-- GeoJSON
-
-### Application
-
-- Streamlit
-
-### Deployment
-
-- Streamlit Community Cloud
-
----
-
-## 27. Current Limitations
+## 21. Current Limitations
 
 ### District-Level Resolution
 
 Predictions are generated for Seoul's 25 districts.
 
-The model does not currently forecast:
+The model does not currently forecast demand or avg use time for:
 
-- individual bike stations,
-- neighborhoods,
-- hourly demand.
+- individual bike stations
+- neighborhoods
+- hourly demand
 
 District aggregation improves stability and visualization simplicity, but removes station-level variation.
 
@@ -1034,20 +848,16 @@ District aggregation improves stability and visualization simplicity, but remove
 
 The current feature set does not include demand-history features such as:
 
-```text
-previous-day rentals
-previous-week rentals
-7-day rolling demand
-district rolling averages
-```
+- previous-day rentals
+- previous-week rentals
+- 7-day rolling demand
+- district rolling averages
 
 The model therefore primarily learns demand from:
 
-```text
-district
-calendar information
-weather forecast
-```
+- district
+- calendar information
+- weather forecast
 
 rather than recent demand trajectories.
 
@@ -1065,35 +875,23 @@ The current Seoul district boundary file is based on a third-party GitHub datase
 
 A future version could replace this with a directly retrieved current government administrative-boundary dataset.
 
-### Model Validation
-
-The current evaluation uses one chronological holdout period.
-
-A stronger future evaluation could use:
-
-```text
-rolling validation
-walk-forward validation
-multiple temporal test windows
-```
-
 ### Operational Demand vs. Shortage Risk
 
 A district with high predicted rental demand is not necessarily experiencing a shortage.
 
 The project does not currently include:
 
-- number of available bikes,
-- station capacity,
-- dock availability,
-- redistribution operations,
-- maintenance constraints.
+- number of available bikes
+- station capacity
+- dock availability
+- redistribution operations
+- maintenance constraints
 
 Therefore, the dashboard should be interpreted as a **demand forecast**, not a shortage-risk or rebalancing recommendation system.
 
 ---
 
-## 28. Future Improvements
+## 22. Future Improvements
 
 ### Modeling
 
@@ -1112,6 +910,7 @@ Therefore, the dashboard should be interpreted as a **demand forecast**, not a s
 
 ### Data
 
+- Add more past data (e.g. all data from 2020s)
 - Add bike availability data
 - Add station capacity
 - Add precipitation amount
@@ -1136,27 +935,9 @@ Therefore, the dashboard should be interpreted as a **demand forecast**, not a s
 - Add downloadable prediction tables
 - Add comparison between multiple districts
 
-### Operations
-
-A future version could combine predicted demand with:
-
-```text
-bike availability
-station capacity
-redistribution cost
-```
-
-to estimate:
-
-```text
-shortage risk
-surplus risk
-bike rebalancing priority
-```
-
 ---
 
-## 29. Key Takeaways
+## 23. Key Takeaways
 
 This project demonstrates an end-to-end data science workflow:
 
@@ -1184,7 +965,7 @@ The project focuses not only on predictive performance, but also on making the f
 
 ---
 
-## 30. Results Summary
+## 24. Results Summary
 
 ### Daily Rental Count
 
@@ -1205,22 +986,6 @@ MAE improvement over district baseline: 50.06%
 ```
 
 These results indicate that district, calendar, and forecast-weather features provide substantial predictive value beyond using each district's historical mean alone.
-
----
-
-## 31. Links
-
-### Repository
-
-https://github.com/jaeho0726/Seoul_Public_Bike_Demand_Forecast
-
-### Live Dashboard
-
-`[ADD YOUR STREAMLIT URL HERE]`
-
-### Seoul District GeoJSON Source
-
-https://github.com/cubensys/Korea_District
 
 ---
 
