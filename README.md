@@ -30,20 +30,9 @@ The deployed dashboard provides:
 
 ### Dashboard Preview
 
-Add a screenshot of the deployed dashboard to the repository, for example:
+![dashboard preview- rental demand](images/rental_demand_preview.png)
 
-```text
-README_assets/
-└── dashboard_preview.png
-```
-
-Then embed it here:
-
-```markdown
-![Dashboard Preview](README_assets/dashboard_preview.png)
-```
-
----
+![dashboard preview - avg use time](images/avg_use_time_preview.png)
 
 ## 1. Project Motivation
 
@@ -54,12 +43,11 @@ Bike usage changes substantially depending on factors such as:
 - weather,
 - weekday/weekend patterns,
 - holidays,
-- district,
-- and seasonal conditions.
+- district
 
 The goal of this project is to build a forecasting pipeline that answers:
 
-> **How many Seoul Public Bike rentals are expected for the next prediction date in each Seoul district, and how long are those rentals expected to last on average?**
+> _**How many Seoul Public Bike rentals are expected for the next prediction date in each Seoul district, and how long are those rentals expected to last on average?**_
 
 Instead of predicting only a citywide total, the system forecasts separately for all **25 Seoul autonomous districts (구)**.
 
@@ -87,12 +75,6 @@ The average rental duration for bikes used within a district on a given day.
 
 The final model therefore produces two predictions for every district:
 
-```text
-district
-├── predicted_use_count
-└── predicted_avg_use_time
-```
-
 ---
 
 ## 3. Prediction Granularity
@@ -101,12 +83,6 @@ Each modeling observation represents:
 
 ```text
 1 date × 1 Seoul district
-```
-
-Since Seoul contains 25 autonomous districts, a complete prediction date contains:
-
-```text
-25 rows
 ```
 
 Example inference output:
@@ -125,10 +101,7 @@ Station-level bike usage is aggregated to the district level before modeling.
 
 ## 4. Forecasting Setup
 
-One of the most important parts of this project is the distinction between:
-
-- **actual future weather**, and
-- **weather forecasts available before the target date**.
+One of the most important parts of this project is the distinction between **actual future weather** and **weather forecasts available before the target date**.
 
 Using realized weather for a next-day prediction would introduce information that would not have been known at forecasting time.
 
@@ -250,7 +223,7 @@ humidity_mean
 ```text
 POP hourly forecasts
         ↓
-maximum
+max
         ↓
 precip_prob_max
 ```
@@ -291,10 +264,7 @@ This allows the weather pipeline to retrieve one forecast value for each of Seou
 
 The dashboard uses a GeoJSON file containing Seoul's district boundaries.
 
-Source:
-
-- `cubensys/Korea_District`
-- https://github.com/cubensys/Korea_District
+Source: [cubensys/Korea_District](https://github.com/cubensys/Korea_District)
 
 The file used by the project is stored as:
 
@@ -323,12 +293,6 @@ GeoJSON["properties"]["SIG_KOR_NM"]
 ## 6. Dataset Construction
 
 The project builds the final modeling dataset by combining bike usage and weather forecasts at the same geographic and temporal level.
-
-The final join key is:
-
-```text
-date × district
-```
 
 The general pipeline is:
 
@@ -373,74 +337,13 @@ avg_use_time
 
 ---
 
-## 7. Features
+## 7. Train/Test Strategy
 
-The current model uses nine input features.
-
-### Spatial Feature
-
-```text
-district
-```
-
-### Calendar Features
-
-```text
-day_of_week
-is_holiday
-is_weekend
-```
-
-### Weather Features
-
-```text
-temp_max
-temp_min
-humidity_mean
-precip_prob_max
-wind_speed_mean
-```
-
-The feature list used for training is:
-
-```python
-feature_columns = [
-    "district",
-    "day_of_week",
-    "is_holiday",
-    "is_weekend",
-    "temp_max",
-    "temp_min",
-    "humidity_mean",
-    "precip_prob_max",
-    "wind_speed_mean",
-]
-```
-
-The categorical variables are:
-
-```text
-district
-day_of_week
-```
-
-and are encoded using the preprocessing pipeline saved during model training.
-
-The remaining variables are passed through as numerical features.
-
----
-
-## 8. Train/Test Strategy
-
-Because this is a forecasting problem, the dataset is **not randomly shuffled** before evaluation.
+Because this is a time-series forecasting problem, the dataset is **not randomly shuffled** before evaluation.
 
 Instead, the project uses a chronological split.
 
-The test period begins on:
-
-```text
-2025-08-01
-```
+The test period begins on: **2025-08-01**
 
 Therefore:
 
@@ -458,7 +361,7 @@ This ensures that evaluation is performed on observations occurring after the tr
 
 ---
 
-## 9. Baseline Model
+## 8. Baseline Model
 
 Before comparing machine learning algorithms, the project defines a simple district-level historical mean baseline.
 
